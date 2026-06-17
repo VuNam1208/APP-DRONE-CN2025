@@ -1,8 +1,18 @@
 import math
 import sys
 import copy
+import os
 from scipy.spatial import ConvexHull
 import numpy as np
+
+MAP_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(MAP_DIR)
+MISSION_DIR = os.path.join(BASE_DIR, "mission")
+
+
+def mission_file_path(filename):
+    os.makedirs(MISSION_DIR, exist_ok=True)
+    return os.path.join(MISSION_DIR, filename)
 
 #-------------CHIA LUOI------------
 
@@ -635,7 +645,7 @@ def chia_dien_tich(positions, number_of_part):
         new = calculate_new_lat_lon(min_lat,min_lon,point[1],point[0])
         per_GPS_list.append(new)
         print(f"{point}")
-    with open('per.txt', 'w') as file:
+    with open(mission_file_path('per.txt'), 'w') as file:
         for pos in per_GPS_list:
             file.write(f"{pos[0]}, {pos[1]}\n")
 
@@ -647,7 +657,7 @@ def chia_dien_tich(positions, number_of_part):
         div_GPS_list.append(new)
         print(f"{new}")
         
-    with open('div.txt', 'w') as file:
+    with open(mission_file_path('div.txt'), 'w') as file:
         for pos in div_GPS_list:
             file.write(f"{pos[0]}, {pos[1]}\n")
 
@@ -720,7 +730,7 @@ def chia_dien_tich(positions, number_of_part):
         # Convert the vertices back to a list of tuples
         points = [tuple(point) for point in hull_vertices]
         final_area.append(points)
-        with open(f'area{i+1}.txt', 'w') as file:
+        with open(mission_file_path(f'area{i+1}.txt'), 'w') as file:
             for pos in points:
                 file.write(f"{pos[0]}, {pos[1]}\n")
       

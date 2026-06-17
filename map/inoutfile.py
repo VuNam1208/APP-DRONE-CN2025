@@ -1,5 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog
+import os
+
+MAP_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(MAP_DIR)
+ID_DRONE_PATH = os.path.join(BASE_DIR, "ID_drone.txt")
+
 def read_points_from_file(filename):
     try:
         with open(filename, 'r') as file:
@@ -15,7 +21,7 @@ def read_points_from_file(filename):
         return None, None
 
 def read_number_from_file():
-    filename = 'ID_drone.txt'  # Set the filename
+    filename = ID_DRONE_PATH
     try:
         with open(filename, 'r') as file:
             # Read each line, strip, and convert to integer if the line is not blank

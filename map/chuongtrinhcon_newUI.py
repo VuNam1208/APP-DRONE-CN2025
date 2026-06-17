@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import json
 from tkintermapview import TkinterMapView
 import os
 import tkinter as tk
@@ -19,6 +20,27 @@ from math import atan2, degrees
 from PIL import Image, ImageTk
 import threading
 from PIL import Image, ImageOps
+
+MAP_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(MAP_DIR)
+MISSION_DIR = os.path.join(BASE_DIR, "mission")
+GPS_DIR = os.path.join(BASE_DIR, "gps")
+DRONE_NUM_PATH = os.path.join(BASE_DIR, "drone_num.txt")
+
+
+def ensure_data_dirs():
+    os.makedirs(MISSION_DIR, exist_ok=True)
+    os.makedirs(GPS_DIR, exist_ok=True)
+
+
+def mission_file_path(filename):
+    ensure_data_dirs()
+    return os.path.join(MISSION_DIR, filename)
+
+
+def gps_data_path(index):
+    ensure_data_dirs()
+    return os.path.join(GPS_DIR, f"gps_data{index}.txt")
 
 
 def main():
@@ -197,7 +219,7 @@ def main():
                 drone = 0
         
         #đọc số  lượng drone
-        file_name = "drone_num.txt"
+        file_name = DRONE_NUM_PATH
         try:
             with open(file_name, 'r') as file:
                 number_string = file.readline().strip()  # Read the first line and strip any extraneous whitespace
@@ -223,7 +245,8 @@ def main():
         #đọc vị trí drone
         for i in range(drone_num):
             try:
-                with open(f'gps_data{x_coords[i]}.txt', 'r') as file:
+                gps_file = gps_data_path(x_coords[i])
+                with open(gps_file, 'r') as file:
                     first_line = file.readline()  # Read only the first line of each file
                     parts = first_line.strip().split(", ")  # Assuming space-separated x, y coordinates.
                     if len(parts) >= 2:
@@ -234,7 +257,7 @@ def main():
                         drone_marker_list.append(drone_marker)  # Adding marker.
                         drone_position_list.append([x, y])  # Adding position to the list.
             except FileNotFoundError:
-                print(f"Error: gps_data{x_coords[i+1]}.txt not found.")
+                print(f"Error: {gps_data_path(x_coords[i])} not found.")
             except Exception as e:
                 print(f"An error occurred: {e}")
 
@@ -376,7 +399,7 @@ def main():
             for i in range(num_drones):
                 try:
                     # Read the latest point from each file
-                    with open(f'gps_data{i+1}.txt', 'r') as file:
+                    with open(gps_data_path(i + 1), 'r') as file:
                         line = file.readline().strip()
                         if line:
                             lat, lon = map(float, line.split(', '))
@@ -778,7 +801,7 @@ def main():
             for i, area_points in enumerate(area_grid):
                 # Check if current index is within the length of current area points list
                 if index < len(area_points):
-                    with open(f'points{i+1}.txt', 'w') as file:
+                    with open(mission_file_path(f'points{i+1}.txt'), 'w') as file:
                         point = area_points[index]
                         file.write(f'{point[0]}, {point[1]}\n')  # Write the current point
                         file.truncate()  # Optional: Ensure the file only contains this point
@@ -870,7 +893,7 @@ def main():
             print("DAY LA POINTS")
             print(f"{points}")
             
-            with open(f'gps_data{i+1}.txt', 'r') as file:
+            with open(gps_data_path(i + 1), 'r') as file:
                 # Read the first line from the file
                 first_line = file.readline().strip()
                 
@@ -880,7 +903,7 @@ def main():
                 # Convert string values to float
                 result_array = [float(value) for value in result_array]
 
-            with open(f'points{i+1}.txt', 'w') as file:
+            with open(mission_file_path(f'points{i+1}.txt'), 'w') as file:
                 file.write(f"{result_array[0]}, {result_array[1]}\n")
                 for pos in points:
                     file.write(f"{pos[0]}, {pos[1]}\n")
@@ -926,11 +949,77 @@ def main():
                 points = all_filtered_sets[i]
                 print("DAY LA POINTS")
                 print(f"{points}")
-                with open(f'removed{i+1}.txt', 'w') as file:
+                with open(mission_file_path(f'removed{i+1}.txt'), 'w') as file:
                     for pos in points:
                         file.write(f"{pos[0]}, {pos[1]}\n")
         
         return all_filtered_sets
+
+    #-----------------XUAT FILE MISSION .PLAN------------------------------------------------------------
+
+    def build_qgc_plan(route, home, altitude):
+        items = []
+        for index, point in enumerate(route, start=1):
+            command = 22 if index == 1 else 16
+            items.append({
+                "AMSLAltAboveTerrain": None,
+                "Altitude": altitude,
+                "AltitudeMode": 1,
+                "autoContinue": True,
+                "command": command,
+                "doJumpId": index,
+                "frame": 3,
+                "params": [0, 0, 0, None, float(point[0]), float(point[1]), altitude],
+                "type": "SimpleItem",
+            })
+        items.append({
+            "autoContinue": True,
+            "command": 20,
+            "doJumpId": len(items) + 1,
+            "frame": 2,
+            "params": [0, 0, 0, 0, 0, 0, 0],
+            "type": "SimpleItem",
+        })
+        return {
+            "fileType": "Plan",
+            "geoFence": {"circles": [], "polygons": [], "version": 2},
+            "groundStation": "QGroundControl",
+            "mission": {
+                "cruiseSpeed": 5,
+                "hoverSpeed": 1,
+                "firmwareType": 12,
+                "globalPlanAltitudeMode": 1,
+                "items": items,
+                "plannedHomePosition": [float(home[0]), float(home[1]), None],
+                "vehicleType": 2,
+                "version": 2,
+            },
+            "rallyPoints": {"points": [], "version": 2},
+            "version": 1,
+        }
+
+    def export_plan_files():
+        routes = all_filtered_sets if all_filtered_sets else area_grid
+        if not routes:
+            print("No grid route to export .plan. Create grid first.")
+            return
+
+        try:
+            altitude = float(entry_plan_altitude.get() or 5)
+        except ValueError:
+            altitude = 5
+
+        written_files = []
+        for index, route in enumerate(routes, start=1):
+            if not route:
+                continue
+            home = drone_position_list[index - 1] if index <= len(drone_position_list) else route[0]
+            plan = build_qgc_plan(route, home, altitude)
+            filename = mission_file_path(f"points{index}.plan")
+            with open(filename, "w", encoding="utf-8") as file:
+                json.dump(plan, file, ensure_ascii=False, indent=4)
+            written_files.append(os.path.basename(filename))
+        print(f"Exported mission plan files: {written_files}")
     
     
     #-----------------VẼ ĐƯỜNG ĐI TRÊN LƯỚI------------------------------------------------------------
@@ -1030,6 +1119,9 @@ def main():
     button_add_marker = ctk.CTkButton(frame_left, text="Rút gọn điểm", command = remove_collinear_points)
     button_add_marker.grid(row=16, column=0, padx=10, pady=10, sticky="ew")
 
+    button_add_marker = ctk.CTkButton(frame_left, text="Xuất mission .plan", command = export_plan_files)
+    button_add_marker.grid(row=17, column=0, padx=10, pady=10, sticky="ew")
+
     # New buttons under the existing ones
     button_new_1 = ctk.CTkButton(master=frame_right, text="Chia khu vực", command= area_division)
     button_new_1.grid(row=2, column=1, padx=10, pady=10, sticky="we")
@@ -1042,6 +1134,10 @@ def main():
 
     entry_grid_distance = ctk.CTkEntry(master=frame_right, placeholder_text="Khoảng cách lưới")
     entry_grid_distance.grid(row=2, column=2, padx=10, pady=10, sticky="we")
+
+    entry_plan_altitude = ctk.CTkEntry(master=frame_right, placeholder_text="Độ cao mission")
+    entry_plan_altitude.grid(row=3, column=0, padx=10, pady=10, sticky="we")
+    entry_plan_altitude.insert(0, "5")
 
 
 

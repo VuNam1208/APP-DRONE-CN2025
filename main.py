@@ -2,13 +2,22 @@
 import sys #ThÆ° 
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MISSION_DIR = os.path.join(BASE_DIR, "mission")
+GPS_DIR = os.path.join(BASE_DIR, "gps")
+KHUNG_DIR = os.path.join(BASE_DIR, "khung")
+DRONE_NUM_PATH = os.path.join(BASE_DIR, "drone_num.txt")
+ID_DRONE_PATH = os.path.join(BASE_DIR, "ID_drone.txt")
+os.environ.setdefault(
+    "QTWEBENGINE_CHROMIUM_FLAGS",
+    "--disable-gpu-compositing --disable-background-timer-throttling --disable-renderer-backgrounding",
+)
 from PyQt5 import QtCore, QtGui
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QGraphicsDropShadowEffect, QLabel, QMainWindow, QPushButton, QSizeGrip, QWidget
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal, QPoint, QPropertyAnimation
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from ui_interface import Ui_MainWindow
-from integrated_map import setup_integrated_map as setup_map_view
+from integrated_map import setup_integrated_map
 import asyncio, cv2
 from mavsdk import System #
 from asyncqt import QEventLoop
@@ -143,7 +152,8 @@ class CaptureThread(QThread):
         """Thá»±c hiá»‡n chá»¥p áº£nh vÃ  lÆ°u thÃ nh file."""
         if self.image is not None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_path = os.path.join(os.path.dirname(__file__), "anh", f"captured_image_{timestamp}.png")
+            os.makedirs(KHUNG_DIR, exist_ok=True)
+            save_path = os.path.join(KHUNG_DIR, f"captured_image_{timestamp}.png")
             if self.image.save(save_path):
                 self.captured_signal.emit(f"áº¢nh Ä‘Ã£ Ä‘Æ°á»£c lÆ°u táº¡i {save_path}")
             else:
@@ -214,8 +224,8 @@ class VideoWidget(QWidget):
         self.search = False
         self.detected_person = False  # Khá»Ÿi táº¡o thuá»™c tÃ­nh detected_person
         
-        self.save_folder = os.path.join(os.path.dirname(__file__), 'anh')
-        os.makedirs(self.save_folder, exist_ok=True)  # Táº¡o thÆ° má»¥c 'anh' náº¿u chÆ°a tá»“n táº¡i
+        self.save_folder = KHUNG_DIR
+        os.makedirs(self.save_folder, exist_ok=True)  # Táº¡o thÆ° má»¥c khung náº¿u chÆ°a tá»“n táº¡i
         # Káº¿t ná»‘i tÃ­n hiá»‡u phÃ¡t hiá»‡n ngÆ°á»i vá»›i hÃ m xá»­ lÃ½
         self.detected_person_signal.connect(self.set_detected_person)
 
@@ -809,9 +819,9 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
         ##########################################################################################################################################################
         #Táº¡o biáº¿n toÃ n cá»¥c Ä‘á»ƒ kiá»ƒm tra xem cÃ³ bao nhiÃªu con Ä‘Ã£ káº¿t ná»‘i
         self.number_drone = 0
-        with open('drone_num.txt', 'w') as f:
+        with open(DRONE_NUM_PATH, 'w') as f:
                 f.write(str(self.number_drone))
-        with open("ID_drone.txt", "w") as file:# Ghi Ä‘Ã¨ ná»™i dung cá»§a file vá»›i chuá»—i trá»‘ng
+        with open(ID_DRONE_PATH, "w") as file:# Ghi Ä‘Ã¨ ná»™i dung cá»§a file vá»›i chuá»—i trá»‘ng
              file.write("")  # XÃ³a ná»™i dung hiá»‡n táº¡i cá»§a file
 
 
@@ -931,18 +941,26 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
         self.ui.restore_window_button.clicked.connect(lambda: self.restore_or_maximize_window())
 
         #Di chuyá»ƒn cá»­a sá»• khi kÃ©o chuá»™t trÃªn thanh tiÃªu Ä‘á»
+        self.clickPosition = self.pos()
+
+        def pressWindow(e):
+            if e.button() == Qt.LeftButton:
+                self.clickPosition = e.globalPos()
+                e.accept()
+
         def moveWindow(e):
             #Kiá»ƒm tra kÃ­ch thÆ°á»›c cá»­a sá»• cÃ³ Ä‘ang nhÆ° máº·c Ä‘á»‹nh hay khÃ´ng
             if self.isMaximized() == False: #KhÃ´ng pháº£i trang thÃ¡i ban Ä‘áº§u
                 #Chá»‰ di chuyá»ƒn cá»­a sá»• khi cá»­a sá»• cÃ³ kÃ­ch thÆ°á»›c bá»‹ thu nhá» 
                 #Chá»‰ cÃ³ thá»ƒ di chuyá»ƒn cá»­a sá»• khi chuá»™t trÃ¡i Ä‘Æ°á»£c nháº¥p
-                if e.buttons() == Qt.LeftButton:  
+                if e.buttons() == Qt.LeftButton and hasattr(self, "clickPosition"):
                     #Di chuyá»ƒn cá»­a sá»•
                     self.move(self.pos() + e.globalPos() - self.clickPosition)
                     self.clickPosition = e.globalPos()
                     e.accept()
         
         #Sá»± kiá»‡n nháº¥p chuá»™t/Sá»± kiá»‡n di chuyá»ƒn chuá»™t/sá»± kiá»‡n kÃ©o vÃ o tiÃªu Ä‘á» trÃªn cÃ¹ng Ä‘á»ƒ di chuyá»ƒn cá»­a sá»•
+        self.ui.header_frame.mousePressEvent = pressWindow
         self.ui.header_frame.mouseMoveEvent = moveWindow
 
         #NÃºt chuyá»ƒn Ä‘á»•i menu bÃªn trÃ¡i
@@ -1002,12 +1020,14 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
             }
         """
         self.ui.stackedWidget.setCurrentWidget(page)
+        if hasattr(self, "shadow"):
+            self.ui.centralwidget.setGraphicsEffect(None if page == self.ui.page_map else self.shadow)
         for button in (self.ui.btn_connect, self.ui.btn_algorithm, self.ui.btn_map):
             button.setStyleSheet(inactive)
         active_button.setStyleSheet(active)
 
     def setup_integrated_map(self):
-        setup_map_view(self)
+        setup_integrated_map(self)
 
     def get_drone(self, index):
         return self.drones[index - 1]
@@ -1071,9 +1091,9 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
         getattr(self.ui, f"waiting_connect_{index}").setText(f"Drone{index} connected")
         getattr(self.ui, f"waiting_connect_{index}").setStyleSheet("color: rgb(0,255,0);")
         self.number_drone += 1
-        with open("drone_num.txt", "w") as f:
+        with open(DRONE_NUM_PATH, "w") as f:
             f.write(str(self.number_drone))
-        with open("ID_drone.txt", "a") as f:
+        with open(ID_DRONE_PATH, "a") as f:
             f.write(f"{index}\n")
 
         telemetry_tasks = [
@@ -1254,13 +1274,31 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
     '''Cac ham mission tung drone'''
     '''CÃ¡c hÃ m mission tá»«ng drone'''
     #mission drone 1
+    def ensure_data_dirs(self):
+        os.makedirs(MISSION_DIR, exist_ok=True)
+        os.makedirs(GPS_DIR, exist_ok=True)
+
+    def mission_plan_path(self, index):
+        self.ensure_data_dirs()
+        return os.path.join(MISSION_DIR, f"points{index}.plan")
+
+    def gps_data_path(self, index):
+        self.ensure_data_dirs()
+        return os.path.join(GPS_DIR, f"gps_data{index}.txt")
+
     async def import_mission(self, index):
         drone = self.get_drone(index)
-        file_path = os.path.join(BASE_DIR, f"points{index}.plan")
+        file_path = self.mission_plan_path(index)
+        if not os.path.isfile(file_path):
+            message = f"Missing mission plan for drone {index}: {file_path}"
+            print(message)
+            self.log_drone(index, f"{message}. Export mission .plan from MAP first.")
+            return None
+
         try:
             mission_import = await drone.mission_raw.import_qgroundcontrol_mission(file_path)
             setattr(self, f"out{index}", mission_import)
-            print(f"Mission {index} imported successfully")
+            print(f"Mission {index} imported successfully from {file_path}")
             self.append_mission_log(index)
             return mission_import
         except Exception as e:
@@ -1268,7 +1306,7 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
             return None
 
     def append_mission_log(self, index):
-        message = f"--Mission drone {index}"
+        message = f"--Mission drone {index}: {os.path.basename(self.mission_plan_path(index))}"
         getattr(self.ui, f"file_uav{index}").appendPlainText(message)
         self.ui.file_all_uav.appendPlainText(message)
         self.ui.plainTextEdit_all_6_uav.appendPlainText(message)
@@ -1300,8 +1338,6 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
                 if mission_progress.current == mission_progress.total:
                     await asyncio.sleep(10)
                     await self.rtl_drone(6)
-                    await self.rtl_drone(2)
-                    await self.rtl_drone(1)
                     break
             return
 
@@ -1498,7 +1534,7 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
             getattr(self.ui, f"Alt_MSL_uav{index}").setText(f"{alt_msl} m")
             getattr(self.ui, f"latitude_uav{index}").setText(str(latitude))
             getattr(self.ui, f"longitude_uav{index}").setText(str(longitude))
-            with open(f"gps_data{index}.txt", "w") as f:
+            with open(self.gps_data_path(index), "w") as f:
                 f.write(f"{latitude}, {longitude}")
 
     async def get_mode(self, index):

@@ -6,8 +6,11 @@ import sys
 from PyQt5.QtCore import QObject, QUrl, pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWebChannel import QWebChannel
+from PyQt5.QtWebEngineWidgets import QWebEngineSettings
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MISSION_DIR = os.path.join(BASE_DIR, "mission")
+GPS_DIR = os.path.join(BASE_DIR, "gps")
 
 
 class MapBridge(QObject):
@@ -19,6 +22,32 @@ class MapBridge(QObject):
     def setCoordinate(self, latitude, longitude):
         self.window.ui.latitude_algorithm.setPlainText(f"{latitude:.8f}")
         self.window.ui.longtitude_algorithm.setPlainText(f"{longitude:.8f}")
+
+    def _read_drone_positions(self):
+        positions = []
+        for index in range(1, 7):
+            filename = os.path.join(GPS_DIR, f"gps_data{index}.txt")
+            if not os.path.isfile(filename):
+                continue
+            try:
+                with open(filename, "r", encoding="utf-8") as file:
+                    line = file.readline().strip()
+                if not line:
+                    continue
+                line = line.replace(";", ",")
+                parts = [part.strip() for part in line.split(",") if part.strip()]
+                if len(parts) < 2:
+                    continue
+                latitude = float(parts[0])
+                longitude = float(parts[1])
+                positions.append({"id": index, "lat": latitude, "lng": longitude})
+            except Exception:
+                continue
+        return positions
+
+    @pyqtSlot(result=str)
+    def getDronePositions(self):
+        return json.dumps({"ok": True, "drones": self._read_drone_positions()})
 
     @pyqtSlot(str, float, result=str)
     def createGrid(self, polygon_json, spacing):
@@ -148,12 +177,179 @@ class MapBridge(QObject):
         except Exception as exc:
             return f"Export failed: {exc}"
 
+    def _flatten_points(self, values):
+        flattened = []
+        for value in values:
+            if (
+                isinstance(value, (list, tuple))
+                and len(value) >= 2
+                and isinstance(value[0], (int, float))
+                and isinstance(value[1], (int, float))
+            ):
+                flattened.append([float(value[0]), float(value[1])])
+            elif isinstance(value, (list, tuple)):
+                flattened.extend(self._flatten_points(value))
+        return flattened
+
+    @pyqtSlot(str, str, str, float, result=str)
+    def createGridRoutes(self, polygon_json, areas_json, drone_points_json, spacing):
+        try:
+            polygon = json.loads(polygon_json)
+            areas = json.loads(areas_json) if areas_json else []
+            drone_points = json.loads(drone_points_json) if drone_points_json else []
+            if not drone_points:
+                drone_points = [[drone["lat"], drone["lng"]] for drone in self._read_drone_positions()]
+            if len(polygon) < 3:
+                return json.dumps({"ok": False, "error": "Need at least 3 polygon points to create grid."})
+
+            map_dir = os.path.join(BASE_DIR, "map")
+            if map_dir not in sys.path:
+                sys.path.insert(0, map_dir)
+            from chia_dien_tich import chia_luoi_one
+            from chia_luoi import find_path
+
+            source_areas = areas if areas else [polygon]
+            area_grid = []
+            with open(os.devnull, "w", encoding="utf-8") as devnull, contextlib.redirect_stdout(devnull):
+                for index, area in enumerate(source_areas):
+                    area_points = [(float(point[0]), float(point[1])) for point in area]
+                    grid_points = chia_luoi_one(area_points, float(spacing))
+                    if not grid_points:
+                        area_grid.append([])
+                        continue
+                    if len(grid_points) < 3:
+                        ordered_points = grid_points
+                    elif drone_points:
+                        start = drone_points[min(index, len(drone_points) - 1)]
+                        ordered_points = find_path(grid_points, (float(start[0]), float(start[1])))
+                    else:
+                        ordered_points = grid_points
+                    area_grid.append([[float(point[0]), float(point[1])] for point in ordered_points])
+
+            return json.dumps({"ok": True, "areaGrid": area_grid, "points": self._flatten_points(area_grid)})
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": str(exc)})
+
+    @pyqtSlot(str, result=str)
+    def reduceGridPoints(self, area_grid_json):
+        try:
+            area_grid = json.loads(area_grid_json)
+
+            def point_on_line(point_a, point_c, point_b, margin_of_error=0.0001):
+                from chia_dien_tich import haversine
+
+                dist_ab = haversine(point_a[0], point_a[1], point_b[0], point_b[1])
+                dist_ac = haversine(point_a[0], point_a[1], point_c[0], point_c[1])
+                dist_bc = haversine(point_b[0], point_b[1], point_c[0], point_c[1])
+                return math.isclose(dist_ab, dist_ac + dist_bc, rel_tol=margin_of_error)
+
+            import math
+            map_dir = os.path.join(BASE_DIR, "map")
+            if map_dir not in sys.path:
+                sys.path.insert(0, map_dir)
+
+            reduced_grid = []
+            for points in area_grid:
+                if len(points) < 3:
+                    reduced_grid.append(points)
+                    continue
+                filtered_points = [points[0]]
+                for index in range(1, len(points) - 1):
+                    if not point_on_line(points[index - 1], points[index], points[index + 1]):
+                        filtered_points.append(points[index])
+                filtered_points.append(points[-1])
+                reduced_grid.append(filtered_points)
+
+            before = len(self._flatten_points(area_grid))
+            after = len(self._flatten_points(reduced_grid))
+            return json.dumps({"ok": True, "areaGrid": reduced_grid, "points": self._flatten_points(reduced_grid), "before": before, "after": after})
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": str(exc)})
+
+    @pyqtSlot(str, str, float, result=str)
+    def exportPlanFiles(self, area_grid_json, drone_points_json, altitude):
+        try:
+            area_grid = json.loads(area_grid_json)
+            drone_points = json.loads(drone_points_json) if drone_points_json else []
+            if not area_grid:
+                return "No grid routes to export."
+
+            written_files = []
+            for index, route in enumerate(area_grid, start=1):
+                if not route:
+                    continue
+                home = drone_points[index - 1] if index <= len(drone_points) else route[0]
+                plan = self._build_qgc_plan(route, home, float(altitude))
+                os.makedirs(MISSION_DIR, exist_ok=True)
+                filename = os.path.join(MISSION_DIR, f"points{index}.plan")
+                with open(filename, "w", encoding="utf-8") as file:
+                    json.dump(plan, file, ensure_ascii=False, indent=4)
+                written_files.append(os.path.basename(filename))
+
+            if not written_files:
+                return "No valid routes to export."
+            return f"Exported mission plan files: {', '.join(written_files)}"
+        except Exception as exc:
+            return f"Export plan failed: {exc}"
+
+    def _build_qgc_plan(self, route, home, altitude):
+        items = []
+        for index, point in enumerate(route, start=1):
+            command = 22 if index == 1 else 16
+            items.append({
+                "AMSLAltAboveTerrain": None,
+                "Altitude": altitude,
+                "AltitudeMode": 1,
+                "autoContinue": True,
+                "command": command,
+                "doJumpId": index,
+                "frame": 3,
+                "params": [0, 0, 0, None, float(point[0]), float(point[1]), altitude],
+                "type": "SimpleItem",
+            })
+        items.append({
+            "autoContinue": True,
+            "command": 20,
+            "doJumpId": len(items) + 1,
+            "frame": 2,
+            "params": [0, 0, 0, 0, 0, 0, 0],
+            "type": "SimpleItem",
+        })
+        return {
+            "fileType": "Plan",
+            "geoFence": {"circles": [], "polygons": [], "version": 2},
+            "groundStation": "QGroundControl",
+            "mission": {
+                "cruiseSpeed": 5,
+                "hoverSpeed": 1,
+                "firmwareType": 12,
+                "globalPlanAltitudeMode": 1,
+                "items": items,
+                "plannedHomePosition": [float(home[0]), float(home[1]), None],
+                "vehicleType": 2,
+                "version": 2,
+            },
+            "rallyPoints": {"points": [], "version": 2},
+            "version": 1,
+        }
+
 
 def setup_integrated_map(window):
     if not hasattr(window.ui, "embedded_map_view"):
         return
     if not hasattr(window.ui.embedded_map_view, "setHtml"):
         return
+
+    settings = window.ui.embedded_map_view.settings()
+    for attribute, enabled in (
+        (QWebEngineSettings.ScrollAnimatorEnabled, False),
+        (QWebEngineSettings.WebGLEnabled, False),
+        (QWebEngineSettings.Accelerated2dCanvasEnabled, False),
+        (QWebEngineSettings.PluginsEnabled, False),
+        (QWebEngineSettings.FullScreenSupportEnabled, False),
+        (QWebEngineSettings.LocalContentCanAccessRemoteUrls, True),
+    ):
+        settings.setAttribute(attribute, enabled)
 
     window.map_bridge = MapBridge(window)
     window.map_channel = QWebChannel(window.ui.embedded_map_view.page())
@@ -184,19 +380,19 @@ def integrated_map_html():
     }
     .map-app {
       display: grid;
-      grid-template-columns: 164px minmax(0, 1fr);
-      gap: 10px;
+      grid-template-columns: 156px minmax(0, 1fr);
+      gap: 6px;
       width: 100%;
       height: 100%;
       box-sizing: border-box;
-      padding: 8px;
+      padding: 4px;
       background: #d7dce2;
     }
     .tool-panel {
       display: grid;
       grid-auto-rows: minmax(28px, auto);
-      gap: 8px;
-      padding: 10px;
+      gap: 6px;
+      padding: 8px;
       background: #cfd5db;
       border-radius: 8px;
       box-sizing: border-box;
@@ -204,16 +400,16 @@ def integrated_map_html():
     }
     .map-main {
       display: grid;
-      grid-template-rows: 48px minmax(260px, 1fr) 44px;
-      gap: 8px;
+      grid-template-rows: 42px minmax(260px, 1fr) 54px;
+      gap: 5px;
       min-width: 0;
       min-height: 0;
     }
     .top-bar,
     .bottom-bar {
       display: grid;
-      grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr);
-      gap: 10px;
+      grid-template-columns: minmax(110px, 0.8fr) minmax(130px, 1fr) minmax(130px, 1fr) minmax(110px, 0.8fr) minmax(130px, 1fr);
+      gap: 6px;
       align-items: center;
       min-width: 0;
     }
@@ -229,10 +425,22 @@ def integrated_map_html():
       color: #1e293b;
       font-size: 13px;
       outline: none;
+      user-select: text;
+      -webkit-user-select: text;
     }
     .field:focus {
       border-color: #2f95d8;
       box-shadow: 0 0 0 2px rgba(47, 149, 216, 0.18);
+    }
+    .input-group {
+      display: grid;
+      grid-template-rows: 16px 30px;
+      gap: 2px;
+      min-width: 0;
+      color: #0f4c81;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 16px;
     }
     button {
       min-height: 28px;
@@ -282,6 +490,12 @@ def integrated_map_html():
     #map {
       width: 100%;
       height: 100%;
+    }
+    #gridCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 650;
+      pointer-events: none;
     }
     .map-status {
       position: absolute;
@@ -353,7 +567,8 @@ def integrated_map_html():
       <button id="clearPolygonBtn">Xoa da giac</button>
       <button id="areaBtn">Tinh dien tich</button>
       <div id="areaInfo">Dien tich da giac</div>
-      <button id="exportGridBtn">Xuat diem luoi</button>
+      <button id="exportGridBtn">Xuat diem luoi .txt</button>
+      <button id="exportPlanBtn">Xuat mission .plan</button>
       <button id="gridPathBtn">Ve/Xoa duong di luoi</button>
       <button id="trackDroneBtn">Theo doi Drone</button>
       <button id="distanceBtn">Tinh khoang cach</button>
@@ -361,19 +576,30 @@ def integrated_map_html():
     </aside>
     <main class="map-main">
       <div class="top-bar">
-        <input id="latInput" class="field" type="number" step="0.00000001" placeholder="Vi do (Latitude)">
-        <input id="lngInput" class="field" type="number" step="0.00000001" placeholder="Kinh do (Longitude)">
+        <input id="latInput" class="field" type="text" inputmode="decimal" autocomplete="off" placeholder="Vi do (Latitude)">
+        <input id="lngInput" class="field" type="text" inputmode="decimal" autocomplete="off" placeholder="Kinh do (Longitude)">
         <button id="addRescueBtn">Them diem cuu nan</button>
         <button id="addDroneBtn">Them diem Drone</button>
       </div>
       <div class="map-wrap">
         <div id="map"></div>
+        <canvas id="gridCanvas"></canvas>
         <div id="mapStatus" class="map-status">Click map de chon/toa diem cuu nan. Nut ben trai dung nhu map goc DG5.</div>
       </div>
       <div class="bottom-bar">
-        <input id="areaParts" class="field" type="number" min="1" value="2" placeholder="So khu vuc can chia">
+        <label class="input-group">
+          <span>So khu vuc</span>
+          <input id="areaParts" class="field" type="text" inputmode="numeric" autocomplete="off" value="2" placeholder="So khu vuc can chia">
+        </label>
         <button id="divideBtn">Chia khu vuc</button>
-        <input id="gridSpacing" class="field" type="number" min="1" value="10" placeholder="Khoang cach luoi">
+        <label class="input-group">
+          <span>Khoang cach luoi</span>
+          <input id="gridSpacing" class="field" type="text" inputmode="decimal" autocomplete="off" value="10" placeholder="Khoang cach luoi">
+        </label>
+        <label class="input-group">
+          <span>Do cao mission</span>
+          <input id="planAltitude" class="field" type="text" inputmode="decimal" autocomplete="off" value="5" placeholder="Do cao mission">
+        </label>
         <button id="gridBtn">Bat/Tat luoi</button>
       </div>
     </main>
@@ -382,6 +608,7 @@ def integrated_map_html():
     var bridge = null;
     new QWebChannel(qt.webChannelTransport, function(channel) {
       bridge = channel.objects.mapBridge;
+      refreshDronePositions(true);
     });
 
     var canvasRenderer = L.canvas({ padding: 0.35 });
@@ -392,15 +619,21 @@ def integrated_map_html():
       zoomAnimation: false,
       fadeAnimation: false,
       markerZoomAnimation: false,
-      inertia: true,
-      wheelDebounceTime: 80,
-      wheelPxPerZoomLevel: 90
-    }).setView([21.0609062, 105.791999817], 17);
-    L.tileLayer('https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga', {
-      maxZoom: 22,
+      keyboard: false,
+      inertia: false,
+      tap: false,
+      zoomSnap: 1,
+      zoomDelta: 1,
+      wheelDebounceTime: 180,
+      wheelPxPerZoomLevel: 150
+    }).setView([21.0609062, 105.791999817], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      maxNativeZoom: 19,
       updateWhenIdle: true,
       updateWhenZooming: false,
-      keepBuffer: 2,
+      updateInterval: 500,
+      keepBuffer: 0,
       detectRetina: false,
       attribution: 'Map data'
     }).addTo(map);
@@ -408,23 +641,55 @@ def integrated_map_html():
     var rescuePoints = [];
     var rescueMarkers = [];
     var dronePoints = [];
+    var droneIds = [];
     var droneMarkers = [];
     var gridPoints = [];
+    var areaGrid = [];
+    var dividedAreas = [];
     var polygonLayer = null;
     var pathLayer = null;
     var gridPathLayer = null;
-    var gridLayer = L.layerGroup().addTo(map);
+    var gridPathLayers = [];
     var areaLayer = L.layerGroup().addTo(map);
+    var gridPointLayer = L.layerGroup().addTo(map);
     var gridVisible = false;
     var gridPathVisible = false;
     var statusBox = document.getElementById('mapStatus');
     var areaBox = document.getElementById('areaInfo');
+    var gridCanvas = document.getElementById('gridCanvas');
+    var gridContext = gridCanvas.getContext('2d');
     var resizeTimer = null;
     var redrawTimer = null;
+    var gridCanvasRedrawPending = false;
 
     function setStatus(text) {
       statusBox.textContent = text;
     }
+
+    function normalizeNumber(value) {
+      return String(value || '').trim().replace(',', '.');
+    }
+
+    function readNumber(id, fallback) {
+      var value = parseFloat(normalizeNumber(document.getElementById(id).value));
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function readInteger(id, fallback) {
+      var value = parseInt(normalizeNumber(document.getElementById(id).value), 10);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    document.querySelectorAll('.field').forEach(function(input) {
+      L.DomEvent.disableClickPropagation(input);
+      L.DomEvent.disableScrollPropagation(input);
+      input.addEventListener('keydown', function(event) {
+        event.stopPropagation();
+      });
+      input.addEventListener('focus', function() {
+        window.setTimeout(function() { input.select(); }, 0);
+      });
+    });
 
     function updateInputs(lat, lng) {
       document.getElementById('latInput').value = lat.toFixed(8);
@@ -435,8 +700,8 @@ def integrated_map_html():
     }
 
     function getInputPoint() {
-      var lat = parseFloat(document.getElementById('latInput').value);
-      var lng = parseFloat(document.getElementById('lngInput').value);
+      var lat = readNumber('latInput', NaN);
+      var lng = readNumber('lngInput', NaN);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         setStatus('Nhap day du vi do va kinh do truoc.');
         return null;
@@ -476,6 +741,55 @@ def integrated_map_html():
       }
     }
 
+    function resizeGridCanvas() {
+      var size = map.getSize();
+      var ratio = window.devicePixelRatio || 1;
+      gridCanvas.style.width = size.x + 'px';
+      gridCanvas.style.height = size.y + 'px';
+      gridCanvas.width = Math.max(1, Math.floor(size.x * ratio));
+      gridCanvas.height = Math.max(1, Math.floor(size.y * ratio));
+      gridContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+      scheduleGridCanvasRedraw();
+    }
+
+    function redrawGridCanvas() {
+      var size = map.getSize();
+      gridContext.clearRect(0, 0, size.x, size.y);
+      if (!gridVisible || !gridPoints.length) {
+        return;
+      }
+      var bounds = map.getBounds().pad(0.08);
+      var maxVisiblePoints = 5000;
+      var visibleCount = 0;
+      var step = Math.max(1, Math.ceil(gridPoints.length / 12000));
+      gridContext.fillStyle = '#dc2626';
+      gridContext.strokeStyle = '#ffffff';
+      gridContext.lineWidth = 1.2;
+      for (var index = 0; index < gridPoints.length && visibleCount < maxVisiblePoints; index += step) {
+        var latlng = pointToLatLng(gridPoints[index]);
+        if (!latlng || !bounds.contains(latlng)) {
+          continue;
+        }
+        var projected = map.latLngToContainerPoint(latlng);
+        gridContext.beginPath();
+        gridContext.arc(projected.x, projected.y, 4, 0, Math.PI * 2);
+        gridContext.fill();
+        gridContext.stroke();
+        visibleCount += 1;
+      }
+    }
+
+    function scheduleGridCanvasRedraw() {
+      if (gridCanvasRedrawPending) {
+        return;
+      }
+      gridCanvasRedrawPending = true;
+      window.requestAnimationFrame(function() {
+        gridCanvasRedrawPending = false;
+        redrawGridCanvas();
+      });
+    }
+
     function scheduleRedraw() {
       if (redrawTimer) {
         window.clearTimeout(redrawTimer);
@@ -484,6 +798,18 @@ def integrated_map_html():
         redrawTimer = null;
         redrawGeometry();
       }, 40);
+    }
+
+    function pointToLatLng(point) {
+      if (!point || point.length < 2) {
+        return null;
+      }
+      var lat = parseFloat(point[0]);
+      var lng = parseFloat(point[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return null;
+      }
+      return L.latLng(lat, lng);
     }
 
     function makeRescueIcon() {
@@ -504,13 +830,15 @@ def integrated_map_html():
         interactive: false,
         keyboard: false
       }).addTo(map);
-      marker.bindTooltip('Diem ' + pointNumber, {
-        permanent: true,
-        direction: 'top',
-        offset: [0, -30],
-        opacity: 1,
-        className: 'rescue-label'
-      });
+      if (!skipUi || rescuePoints.length <= 40) {
+        marker.bindTooltip('Diem ' + pointNumber, {
+          permanent: !skipUi,
+          direction: 'top',
+          offset: [0, -30],
+          opacity: 1,
+          className: 'rescue-label'
+        });
+      }
       rescueMarkers.push(marker);
       if (!skipUi) {
         scheduleRedraw();
@@ -518,21 +846,22 @@ def integrated_map_html():
       }
     }
 
-    function addDronePoint(lat, lng, skipUi) {
+    function addDronePoint(lat, lng, skipUi, droneId) {
       var point = [lat, lng];
       dronePoints.push(point);
+      droneIds.push(droneId || dronePoints.length);
       var marker = L.circleMarker(point, {
         renderer: canvasRenderer,
-        radius: 6,
-        color: '#dc2626',
+        radius: 8,
+        color: '#ffffff',
         weight: 2,
-        fillColor: '#ef4444',
+        fillColor: '#2563eb',
         fillOpacity: 0.95
       }).addTo(map);
-      marker.bindTooltip('Drone ' + dronePoints.length, { permanent: true, direction: 'top' });
+      marker.bindTooltip('UAV ' + (droneId || dronePoints.length), { permanent: true, direction: 'top' });
       droneMarkers.push(marker);
       if (!skipUi) {
-        setStatus('Diem Drone: ' + dronePoints.length + '. Last: ' + lat.toFixed(8) + ', ' + lng.toFixed(8));
+        setStatus('UAV ' + (droneId || dronePoints.length) + ': ' + lat.toFixed(8) + ', ' + lng.toFixed(8));
       }
     }
 
@@ -550,18 +879,24 @@ def integrated_map_html():
     }
 
     function clearGrid() {
-      gridLayer.clearLayers();
       gridPoints = [];
+      areaGrid = [];
       gridVisible = false;
-      if (gridPathLayer) {
-        map.removeLayer(gridPathLayer);
-        gridPathLayer = null;
-      }
+      gridPointLayer.clearLayers();
+      var size = map.getSize();
+      gridContext.clearRect(0, 0, size.x, size.y);
+      clearGridPath();
+    }
+
+    function clearGridPath() {
+      gridPathLayers.forEach(function(layer) { map.removeLayer(layer); });
+      gridPathLayers = [];
       gridPathVisible = false;
     }
 
     function clearAreas() {
       areaLayer.clearLayers();
+      dividedAreas = [];
     }
 
     function clearRescue() {
@@ -577,9 +912,38 @@ def integrated_map_html():
 
     function clearDrone() {
       dronePoints = [];
+      droneIds = [];
       droneMarkers.forEach(function(marker) { map.removeLayer(marker); });
       droneMarkers = [];
       setStatus('Da xoa diem Drone.');
+    }
+
+    function setDronePositionsFromGps(drones, shouldFit) {
+      clearDrone();
+      drones.forEach(function(drone) {
+        addDronePoint(parseFloat(drone.lat), parseFloat(drone.lng), true, drone.id);
+      });
+      if (shouldFit) {
+        fitAll();
+      }
+      setStatus('Da cap nhat ' + drones.length + ' toa do UAV tu folder gps.');
+    }
+
+    function refreshDronePositions(shouldFit, done) {
+      if (!bridge) {
+        setStatus('Bridge is not ready yet.');
+        if (done) done();
+        return;
+      }
+      bridge.getDronePositions(function(response) {
+        var result = JSON.parse(response);
+        if (result.ok && result.drones && result.drones.length) {
+          setDronePositionsFromGps(result.drones, shouldFit);
+        } else {
+          setStatus('Chua co toa do UAV hop le trong folder gps.');
+        }
+        if (done) done();
+      });
     }
 
     function undoPoint() {
@@ -598,36 +962,76 @@ def integrated_map_html():
       setStatus('Removed last rescue point. Points: ' + rescuePoints.length);
     }
 
-    function drawGrid(generatedGridPoints) {
+    function flattenAreaGrid(groups) {
+      return groups.reduce(function(points, group) {
+        return points.concat(group || []);
+      }, []);
+    }
+
+    function drawGrid(generatedAreaGrid) {
       clearGrid();
-      gridPoints = generatedGridPoints;
+      areaGrid = generatedAreaGrid;
+      gridPoints = flattenAreaGrid(generatedAreaGrid);
       gridVisible = true;
-      var index = 0;
-      var chunkSize = 220;
-      setStatus('Dang ve ' + generatedGridPoints.length + ' diem luoi...');
+      resizeGridCanvas();
+      drawGridPointMarkers();
+      scheduleGridCanvasRedraw();
+      setStatus('Grid routes: ' + generatedAreaGrid.length + ', points: ' + gridPoints.length);
+    }
 
-      function drawChunk() {
-        var end = Math.min(index + chunkSize, generatedGridPoints.length);
-        for (; index < end; index++) {
-          var point = generatedGridPoints[index];
-          L.circleMarker(point, {
-            renderer: canvasRenderer,
-            radius: 3,
-            color: '#dc2626',
-            weight: 1,
-            fillColor: '#ef4444',
-            fillOpacity: 0.8,
-            interactive: false
-          }).addTo(gridLayer);
-        }
-        if (index < generatedGridPoints.length) {
-          window.requestAnimationFrame(drawChunk);
-        } else {
-          setStatus('Grid points: ' + generatedGridPoints.length);
-        }
+    function drawGridPointMarkers() {
+      gridPointLayer.clearLayers();
+      if (!gridPoints.length) {
+        return;
       }
+      var maxMarkers = 2500;
+      var step = Math.max(1, Math.ceil(gridPoints.length / maxMarkers));
+      var visibleMarkers = 0;
+      for (var index = 0; index < gridPoints.length; index += step) {
+        var latlng = pointToLatLng(gridPoints[index]);
+        if (!latlng) {
+          continue;
+        }
+        L.circleMarker(latlng, {
+          renderer: canvasRenderer,
+          radius: 5,
+          color: '#ffffff',
+          weight: 1.4,
+          fillColor: '#dc2626',
+          fillOpacity: 0.95,
+          interactive: false
+        }).addTo(gridPointLayer);
+        visibleMarkers += 1;
+      }
+      setStatus('Da hien ' + visibleMarkers + '/' + gridPoints.length + ' diem luoi.');
+    }
 
-      window.requestAnimationFrame(drawChunk);
+    function drawGridPath() {
+      clearGridPath();
+      if (!areaGrid.length) {
+        return false;
+      }
+      var colors = ['#ef4444', '#2563eb', '#16a34a', '#f59e0b', '#7c3aed', '#db2777'];
+      areaGrid.forEach(function(route, index) {
+        if (!route || route.length < 2) {
+          return;
+        }
+        var displayRoute = route.slice();
+        if (dronePoints[index]) {
+          displayRoute = [dronePoints[index]].concat(displayRoute);
+        }
+        gridPathLayers.push(L.polyline(displayRoute, {
+          renderer: canvasRenderer,
+          color: colors[index % colors.length],
+          weight: 3,
+          opacity: 0.95,
+          dashArray: '6 6',
+          interactive: false,
+          smoothFactor: 1.6
+        }).addTo(map));
+      });
+      gridPathVisible = gridPathLayers.length > 0;
+      return gridPathVisible;
     }
 
     function drawAreas(areas) {
@@ -644,6 +1048,7 @@ def integrated_map_html():
           smoothFactor: 1.4
         }).addTo(areaLayer);
       });
+      dividedAreas = areas;
       setStatus('Divided into ' + areas.length + ' areas.');
     }
 
@@ -695,6 +1100,29 @@ def integrated_map_html():
       clearRescue();
       addPointList(reduced, 'rescue');
       setStatus('Da rut gon con ' + rescuePoints.length + ' diem.');
+    }
+
+    function reduceGridRoutes() {
+      if (!bridge) {
+        setStatus('Bridge is not ready yet.');
+        return;
+      }
+      if (!areaGrid.length) {
+        simplifyRescuePoints();
+        return;
+      }
+      bridge.reduceGridPoints(JSON.stringify(areaGrid), function(response) {
+        var result = JSON.parse(response);
+        if (!result.ok) {
+          setStatus('Rut gon diem loi: ' + result.error);
+          return;
+        }
+        areaGrid = result.areaGrid;
+        gridPoints = result.points;
+        scheduleGridCanvasRedraw();
+        clearGridPath();
+        setStatus('Da rut gon diem luoi: ' + result.before + ' -> ' + result.after + ' diem.');
+      });
     }
 
     map.on('click', function(event) {
@@ -751,6 +1179,14 @@ def integrated_map_html():
     document.getElementById('clearDroneBtn').addEventListener('click', clearDrone);
     document.getElementById('clearRescueBtn').addEventListener('click', clearRescue);
     document.getElementById('pathBtn').addEventListener('click', function() {
+      if (areaGrid.length) {
+        if (drawGridPath()) {
+          setStatus('Da tao duong di luoi qua ' + areaGrid.length + ' tuyen.');
+        } else {
+          setStatus('Chua co tuyen luoi hop le de ve duong di.');
+        }
+        return;
+      }
       redrawGeometry();
       setStatus('Da tao duong di qua ' + rescuePoints.length + ' diem.');
     });
@@ -807,14 +1243,16 @@ def integrated_map_html():
         setStatus('Can it nhat 3 diem da giac de tao luoi.');
         return;
       }
-      var spacing = parseFloat(document.getElementById('gridSpacing').value || '10');
-      bridge.createGrid(JSON.stringify(rescuePoints), spacing, function(response) {
-        var result = JSON.parse(response);
-        if (!result.ok) {
-          setStatus('Grid failed: ' + result.error);
-          return;
-        }
-        drawGrid(result.points);
+      refreshDronePositions(false, function() {
+        var spacing = readNumber('gridSpacing', 10);
+        bridge.createGridRoutes(JSON.stringify(rescuePoints), JSON.stringify(dividedAreas), JSON.stringify(dronePoints), spacing, function(response) {
+          var result = JSON.parse(response);
+          if (!result.ok) {
+            setStatus('Grid failed: ' + result.error);
+            return;
+          }
+          drawGrid(result.areaGrid);
+        });
       });
     });
     document.getElementById('divideBtn').addEventListener('click', function() {
@@ -826,7 +1264,7 @@ def integrated_map_html():
         setStatus('Can it nhat 3 diem da giac de chia khu vuc.');
         return;
       }
-      var parts = parseInt(document.getElementById('areaParts').value || '2', 10);
+      var parts = readInteger('areaParts', 2);
       bridge.divideArea(JSON.stringify(rescuePoints), parts, function(response) {
         var result = JSON.parse(response);
         if (!result.ok) {
@@ -850,15 +1288,27 @@ def integrated_map_html():
         setStatus('Bridge is not ready yet.');
         return;
       }
-      bridge.exportPoints(JSON.stringify(gridPoints), function(message) {
+      bridge.exportPoints(JSON.stringify(areaGrid.length ? areaGrid : gridPoints), function(message) {
+        setStatus(message);
+      });
+    });
+    document.getElementById('exportPlanBtn').addEventListener('click', function() {
+      if (!bridge) {
+        setStatus('Bridge is not ready yet.');
+        return;
+      }
+      if (!areaGrid.length) {
+        setStatus('Chua co tuyen luoi de xuat mission .plan.');
+        return;
+      }
+      var altitude = readNumber('planAltitude', 5);
+      bridge.exportPlanFiles(JSON.stringify(areaGrid), JSON.stringify(dronePoints), altitude, function(message) {
         setStatus(message);
       });
     });
     document.getElementById('gridPathBtn').addEventListener('click', function() {
-      if (gridPathVisible && gridPathLayer) {
-        map.removeLayer(gridPathLayer);
-        gridPathLayer = null;
-        gridPathVisible = false;
+      if (gridPathVisible) {
+        clearGridPath();
         setStatus('Da xoa duong di luoi.');
         return;
       }
@@ -866,24 +1316,14 @@ def integrated_map_html():
         setStatus('Chua co diem luoi de ve duong di.');
         return;
       }
-      gridPathLayer = L.polyline(gridPoints, {
-        renderer: canvasRenderer,
-        color: '#ef4444',
-        weight: 2,
-        dashArray: '5 5',
-        interactive: false,
-        smoothFactor: 1.6
-      }).addTo(map);
-      gridPathVisible = true;
-      setStatus('Da ve duong di luoi qua ' + gridPoints.length + ' diem.');
+      if (drawGridPath()) {
+        setStatus('Da ve duong di luoi qua ' + areaGrid.length + ' tuyen.');
+      } else {
+        setStatus('Chua co tuyen luoi hop le de ve duong di.');
+      }
     });
     document.getElementById('trackDroneBtn').addEventListener('click', function() {
-      if (!dronePoints.length) {
-        setStatus('Chua co diem Drone de theo doi.');
-        return;
-      }
-      fitAll();
-      setStatus('Da dua map ve vung co Drone.');
+      refreshDronePositions(true);
     });
     document.getElementById('distanceBtn').addEventListener('click', function() {
       if (rescuePoints.length < 2) {
@@ -892,7 +1332,7 @@ def integrated_map_html():
       }
       setStatus('Tong khoang cach duong di: ' + totalDistance(rescuePoints).toFixed(2) + ' m.');
     });
-    document.getElementById('reduceBtn').addEventListener('click', simplifyRescuePoints);
+    document.getElementById('reduceBtn').addEventListener('click', reduceGridRoutes);
 
     window.addEventListener('resize', function() {
       if (resizeTimer) {
@@ -900,8 +1340,14 @@ def integrated_map_html():
       }
       resizeTimer = window.setTimeout(function() {
         map.invalidateSize(false);
+        resizeGridCanvas();
       }, 180);
     });
+    map.on('moveend zoomend resize', scheduleGridCanvasRedraw);
+    setTimeout(function() {
+      map.invalidateSize(false);
+      resizeGridCanvas();
+    }, 120);
   </script>
 </body>
 </html>
