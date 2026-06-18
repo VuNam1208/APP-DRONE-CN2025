@@ -1021,7 +1021,16 @@ class MainWindow(QMainWindow): # Class giao diá»‡n MainWindow, nÃ³ káº¿
         """
         self.ui.stackedWidget.setCurrentWidget(page)
         if hasattr(self, "shadow"):
-            self.ui.centralwidget.setGraphicsEffect(None if page == self.ui.page_map else self.shadow)
+            try:
+                self.shadow.setEnabled(page != self.ui.page_map)
+            except RuntimeError:
+                self.shadow = QGraphicsDropShadowEffect(self)
+                self.shadow.setBlurRadius(50)
+                self.shadow.setXOffset(0)
+                self.shadow.setYOffset(0)
+                self.shadow.setColor(QColor(0, 92, 157, 550))
+                self.ui.centralwidget.setGraphicsEffect(self.shadow)
+                self.shadow.setEnabled(page != self.ui.page_map)
         for button in (self.ui.btn_connect, self.ui.btn_algorithm, self.ui.btn_map):
             button.setStyleSheet(inactive)
         active_button.setStyleSheet(active)
