@@ -545,12 +545,6 @@ def integrated_map_html():
       border-radius: 50%;
       z-index: 1;
     }
-    .rescue-label {
-      color: #6f1d12;
-      font: 700 14px Segoe UI, Arial, sans-serif;
-      text-shadow: 0 1px 0 #ffffff, 1px 0 0 #ffffff, -1px 0 0 #ffffff, 0 -1px 0 #ffffff;
-      white-space: nowrap;
-    }
   </style>
 </head>
 <body>
@@ -824,21 +818,11 @@ def integrated_map_html():
     function addRescuePoint(lat, lng, skipUi) {
       var point = [lat, lng];
       rescuePoints.push(point);
-      var pointNumber = rescuePoints.length;
       var marker = L.marker(point, {
         icon: makeRescueIcon(),
         interactive: false,
         keyboard: false
       }).addTo(map);
-      if (!skipUi || rescuePoints.length <= 40) {
-        marker.bindTooltip('Diem ' + pointNumber, {
-          permanent: !skipUi,
-          direction: 'top',
-          offset: [0, -30],
-          opacity: 1,
-          className: 'rescue-label'
-        });
-      }
       rescueMarkers.push(marker);
       if (!skipUi) {
         scheduleRedraw();
@@ -858,7 +842,6 @@ def integrated_map_html():
         fillColor: '#2563eb',
         fillOpacity: 0.95
       }).addTo(map);
-      marker.bindTooltip('UAV ' + (droneId || dronePoints.length), { permanent: true, direction: 'top' });
       droneMarkers.push(marker);
       if (!skipUi) {
         setStatus('UAV ' + (droneId || dronePoints.length) + ': ' + lat.toFixed(8) + ', ' + lng.toFixed(8));
