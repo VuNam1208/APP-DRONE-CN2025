@@ -1,0 +1,9 @@
+scenario,strategy,eta_pct,t_fin_s,l_max_m,n_c,t_react_s,pool_pts,route_pts,note
+S1,B0,93.9,1710.5,3421.1,0,3.01,197,185,lost-link mid coverage (T_react includes T_lost)
+S1,B1,97.5,1052.0,2104.0,1,3.04,197,247,lost-link mid coverage (T_react includes T_lost)
+S1,Proposed,97.5,1056.0,2104.0,0,3.02,197,247,lost-link mid coverage (T_react includes T_lost)
+S2,B0,93.9,1710.5,3421.1,0,0.01,197,185,low-battery fail while in-mission
+S2,B1,97.5,1052.0,2104.0,1,0.04,197,247,low-battery fail while in-mission
+S2,Proposed,97.5,1056.0,2104.0,0,0.02,197,247,low-battery fail while in-mission
+S3,B1,100.0,1313.2,2626.5,1,0.05,244,426,earlier fail → denser residual / higher conflict risk
+S3,Proposed,100.0,1317.2,2626.5,0,0.03,244,426,earlier fail → denser residual / higher conflict risk

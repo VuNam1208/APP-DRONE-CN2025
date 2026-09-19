@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: "Times New Roman", serif; font-size: 13pt; line-height: 1.5; text-align: justify; }
+h1 { font-size: 14pt; text-align: center; text-transform: uppercase; }
+h2 { font-size: 13pt; }
+h3 { font-size: 13pt; font-style: italic; }
+table { border-collapse: collapse; width: 100%; font-size: 12pt; }
+th, td { border: 1px solid #000; padding: 4pt 6pt; vertical-align: top; }
+th { text-align: center; }
+p.center { text-align: center; }
+</style>
+</head>
+<body>
+
+<p class="center"><b>PHỤ LỤC – MẪU 10/ĐTCS</b></p>
+<h1>BÁO CÁO MÔ TẢ SẢN PHẨM CÔNG NGHỆ CỦA ĐỀ TÀI</h1>
+
+<h2>1. THÔNG TIN CHUNG VỀ SẢN PHẨM</h2>
+<p><b>– Tên sản phẩm:</b> Phần mềm trạm trung tâm điều khiển hệ thống nhiều UAV phát hiện người bị mắc kẹt và hỗ trợ xử lý cứu hộ cứu nạn có ứng dụng trí tuệ nhân tạo.</p>
+<p><b>– Loại sản phẩm:</b> Phần mềm ứng dụng chạy trên máy tính (trạm điều khiển mặt đất – Ground Control Station).</p>
+<p><b>– Thuộc đề tài:</b> Nghiên cứu xây dựng phần mềm điều khiển trạm trung tâm phát hiện người bị mắc kẹt và xử lý cứu hộ cứu nạn có ứng dụng trí tuệ nhân tạo; <b>Mã số:</b> CN25.05.</p>
+<p><b>– Chủ nhiệm đề tài:</b> KS. Vũ Đình Nam – Khoa Cơ học kỹ thuật và Tự động hóa, Trường Đại học Công nghệ, ĐHQGHN.</p>
+<p><b>– Thời gian phát triển sản phẩm:</b> 12 tháng (từ 22/08/2025 đến 21/08/2026), trong khuôn khổ thời gian thực hiện đề tài.</p>
+<p><b>– Công bố khoa học liên quan trực tiếp đến sản phẩm:</b> bài báo <i>“Planning for Multi-UAV Control Systems: Edge-Oriented Partitioning and Serpentine Routing”</i>, Kỷ yếu Hội nghị quốc tế ICEMA 2025, ISBN 978-604-357-500-2, DOI: 10.15625/vap.2026.0020.</p>
+
+<h2>2. MÔ TẢ TÓM TẮT SẢN PHẨM VÀ PHẠM VI ỨNG DỤNG</h2>
+<p>Sản phẩm là <b>phần mềm trạm điều khiển trung tâm</b> dành cho hệ thống nhiều máy bay không người lái (UAV), được xây dựng phục vụ nhiệm vụ tìm kiếm, phát hiện người bị mắc kẹt và hỗ trợ công tác cứu hộ cứu nạn trong các tình huống thiên tai, sự cố như lũ lụt, sạt lở đất, động đất, cháy rừng hoặc tai nạn trên địa hình phức tạp, hiểm trở mà lực lượng cứu hộ khó tiếp cận trực tiếp.</p>
+<p>Phần mềm cho phép một kíp vận hành tại trạm mặt đất <b>kết nối, giám sát và điều khiển đồng thời tối đa 06 UAV</b> trên cùng một giao diện thống nhất; tiếp nhận và hiển thị đồng thời nhiều luồng video truyền trực tiếp từ camera gắn trên UAV; tự động <b>phát hiện người trong vùng tìm kiếm bằng mô hình trí tuệ nhân tạo</b>; hỗ trợ <b>lập kế hoạch đường bay tự động</b> bằng thuật toán phân chia khu vực và sinh tuyến bay bao phủ cho từng UAV. Khi phát hiện đối tượng nghi là nạn nhân, hệ thống tự động ghi nhận tọa độ GPS vị trí phát hiện và có thể điều phối một UAV chuyên trách bay đến vị trí đó để xác minh hoặc thả hàng cứu trợ thông qua cơ cấu kẹp – thả (gripper) điều khiển từ xa.</p>
+<p><b>Phạm vi ứng dụng:</b> sản phẩm hướng tới phục vụ các lực lượng phòng chống thiên tai và tìm kiếm cứu nạn, đơn vị công an, quân đội, kiểm lâm, trung tâm chỉ huy ứng phó khẩn cấp; đồng thời là nền tảng nghiên cứu – đào tạo về hệ thống UAV đa phương tiện tại các trường đại học, viện nghiên cứu. Do tương thích chuẩn mở MAVLink/PX4, sản phẩm có thể triển khai trên nhiều dòng UAV khác nhau mà không bị khóa vào một hãng thiết bị cụ thể.</p>
+
+<h2>3. YÊU CẦU CƠ SỞ HẠ TẦNG ĐỂ TRIỂN KHAI SẢN PHẨM</h2>
+<p><b>a) Phần cứng trạm điều khiển:</b> máy tính cá nhân hoặc máy trạm chạy hệ điều hành Windows/Linux/macOS; khuyến nghị CPU từ 4 nhân, RAM từ 8 GB trở lên; nếu chạy nhận diện AI trên nhiều luồng video đồng thời, khuyến nghị có GPU hỗ trợ tăng tốc tính toán.</p>
+<p><b>b) Thiết bị bay:</b> các UAV sử dụng bộ điều khiển bay tương thích chuẩn PX4/MAVLink (hệ thống đã thử nghiệm với đội hình tối đa 06 UAV); UAV làm nhiệm vụ thả hàng cứu trợ cần trang bị cơ cấu kẹp – thả (gripper).</p>
+<p><b>c) Thiết bị quan sát:</b> camera gimbal gắn trên UAV có khả năng truyền video theo giao thức RTSP (hệ thống đã tích hợp và thử nghiệm với dòng camera gimbal SIYI, điều khiển qua giao thức UDP của hãng).</p>
+<p><b>d) Hạ tầng truyền thông:</b> kênh truyền dữ liệu điều khiển – telemetry giữa trạm và UAV theo chuẩn MAVLink (qua sóng vô tuyến hoặc mạng IP); kênh truyền video qua mạng IP (Wi-Fi/mạng riêng của thiết bị truyền dẫn).</p>
+<p><b>e) Môi trường phần mềm:</b> Python 3 cùng các thư viện kèm theo (PyQt5, MAVSDK-Python, OpenCV, Ultralytics, asyncqt, NumPy); các tiến trình dịch vụ mavsdk_server chạy nội bộ trên trạm để quản lý kết nối tới từng UAV. Toàn bộ phần mềm chạy cục bộ tại trạm, <b>không yêu cầu kết nối Internet</b> khi vận hành (trừ trường hợp muốn tải bản đồ nền trực tuyến).</p>
+
+<h2>4. KIẾN TRÚC HỆ THỐNG VÀ CÔNG NGHỆ SỬ DỤNG</h2>
+<p>Phần mềm được thiết kế theo <b>kiến trúc phân lớp</b> gồm bốn tầng chức năng độc lập, bảo đảm khả năng mở rộng và nâng cấp từng thành phần mà không ảnh hưởng đến toàn hệ thống:</p>
+<p>– <b>Tầng giao diện người dùng:</b> xây dựng bằng Python với bộ thư viện Qt (PyQt5), giao diện hiện đại dạng bảng điều khiển tổng hợp, bố trí các phân vùng chức năng rõ ràng: bảng điều khiển UAV, khu vực hiển thị video, bản đồ số và nhật ký hoạt động.</p>
+<p>– <b>Tầng điều khiển UAV:</b> giao tiếp theo chuẩn giao thức <b>MAVLink</b> thông qua thư viện MAVSDK. Mỗi UAV được quản lý bởi một tiến trình dịch vụ độc lập (các cổng 50060–50065), cho phép điều khiển song song 06 UAV không xung đột. Các lệnh điều khiển được xử lý bất đồng bộ (asyncio), bảo đảm giao diện luôn mượt trong khi truyền nhận dữ liệu liên tục.</p>
+<p>– <b>Tầng truyền thông dữ liệu:</b> tiếp nhận luồng video thời gian thực từ UAV qua giao thức <b>RTSP</b>; điều khiển camera gimbal (quay – ngẩng – zoom) qua giao thức UDP của camera SIYI; dữ liệu telemetry (tọa độ GPS, độ cao, tốc độ, mức pin, chế độ bay, trạng thái ARM) được cập nhật liên tục từ từng UAV về trạm.</p>
+<p>– <b>Tầng xử lý trí tuệ nhân tạo:</b> tích hợp mô hình học sâu <b>YOLO</b>, sử dụng bộ trọng số được nhóm nghiên cứu huấn luyện riêng cho bài toán phát hiện người từ góc nhìn trên cao của UAV. Mô hình nhận diện đồng thời ba lớp đối tượng (người, xe máy, ô tô); riêng đối tượng “người” áp ngưỡng tin cậy cao (trên 80%) nhằm giảm cảnh báo giả.</p>
+<p>Module bản đồ số được xây dựng trên nền Leaflet nhúng trong cửa sổ QtWebEngine, kết nối hai chiều với phần lõi Python qua cơ chế QWebChannel, cho phép hiển thị vị trí UAV theo thời gian thực và thao tác vẽ vùng tìm kiếm trực tiếp trên bản đồ vệ tinh.</p>
+<p><b>Thành phần tự phát triển và thành phần kế thừa:</b> Nhóm nghiên cứu <b>tự thiết kế và phát triển toàn bộ</b> phần mềm trạm trung tâm, bao gồm: kiến trúc tổng thể; giao diện điều khiển; logic quản lý – điều phối đồng thời 06 UAV; module tiếp nhận, hiển thị, ghi hình đa luồng video; quy trình tự động ghi nhận tọa độ và điều phối UAV cứu trợ khi phát hiện người; module bản đồ tương tác; đặc biệt là <b>thuật toán phân chia khu vực theo hướng cạnh dài và sinh tuyến bay serpentine</b> (kết quả khoa học riêng của đề tài, đã công bố quốc tế); và bộ trọng số AI huấn luyện trên dữ liệu ảnh UAV. Các thành phần kế thừa là những thư viện mã nguồn mở chuẩn mực của cộng đồng, chỉ đóng vai trò nền tảng kỹ thuật: PyQt5 (khung giao diện), MAVSDK (giao thức MAVLink), OpenCV (xử lý ảnh), Ultralytics YOLO (khung mô hình học sâu), Leaflet (bản đồ nền).</p>
+
+<h2>5. CÁC TÍNH NĂNG CỦA SẢN PHẨM</h2>
+<h3>5.1. Quản lý và điều khiển đồng thời nhiều UAV</h3>
+<p>Kết nối và điều khiển độc lập từng UAV hoặc đồng thời cả đội hình 06 UAV: kích hoạt/ngắt động cơ (ARM/DISARM), cất cánh, hạ cánh, bay đến tọa độ chỉ định (Go-to), điều chỉnh khoảng cách và hướng dịch chuyển, dừng khẩn cấp. Trạng thái từng UAV (kết nối, GPS, độ cao, tốc độ, dung lượng pin, chế độ bay) hiển thị trực quan và ghi vào nhật ký riêng của từng máy.</p>
+<h3>5.2. Tiếp nhận, hiển thị và quản lý dữ liệu video thời gian thực</h3>
+<p>Tiếp nhận đồng thời nhiều luồng video RTSP từ các UAV, hiển thị song song trên giao diện; hỗ trợ phóng to/thu nhỏ từng khung hình, chụp ảnh nhanh, ghi hình ra tệp video và lưu trữ có tổ chức theo từng UAV. Cơ chế tự động kết nối lại bảo đảm luồng video không gián đoạn kéo dài khi đường truyền chập chờn.</p>
+<h3>5.3. Phát hiện người tự động bằng trí tuệ nhân tạo</h3>
+<p>Khi bật chế độ nhận diện, mô hình YOLO phân tích khung hình video và khoanh vùng đối tượng kèm mức độ tin cậy ngay trên màn hình. Ở <b>chế độ tìm kiếm cứu nạn</b>, khi phát hiện người trong vùng bay, hệ thống tự động: (i) ghi nhận tọa độ GPS tại thời điểm phát hiện; (ii) lưu ảnh bằng chứng; (iii) cảnh báo người vận hành; (iv) điều phối UAV chuyên trách tự động bay đến vị trí phát hiện để xác minh cự ly gần hoặc thả hàng cứu trợ (nước, phao, vật tư y tế) bằng cơ cấu gripper. Cơ chế kiểm tra trạng thái bận/rảnh của UAV bảo đảm các nhiệm vụ điều phối không chồng chéo.</p>
+<h3>5.4. Lập kế hoạch bay tự động cho nhiều UAV trên bản đồ số</h3>
+<p>Đây là tính năng khoa học nổi bật, hiện thực hóa thuật toán đã công bố tại ICEMA 2025. Người vận hành vẽ đa giác khu vực tìm kiếm trực tiếp trên bản đồ vệ tinh; phần mềm tự động: (i) tính diện tích khu vực; (ii) <b>phân chia khu vực theo hướng cạnh dài nhất của đa giác</b> thành các phần diện tích cân bằng tương ứng số UAV; (iii) sinh lưới điểm bao phủ với khoảng cách quét tùy chỉnh theo trường nhìn camera; (iv) tạo <b>tuyến bay hình rắn lượn (serpentine)</b> cho từng UAV, giảm quãng đường bay lớn nhất và cân bằng khối lượng công việc giữa các UAV; (v) tinh giản các điểm trung gian thẳng hàng để giảm dung lượng nhiệm vụ; (vi) <b>xuất kế hoạch bay ra tệp .plan theo chuẩn QGroundControl</b> và nạp trực tiếp xuống từng UAV kèm thiết lập độ cao, tốc độ bay. Vị trí thời gian thực của cả đội UAV hiển thị liên tục trên bản đồ trong suốt nhiệm vụ.</p>
+<h3>5.5. Điều khiển camera gimbal chuyên dụng</h3>
+<p>Tích hợp module điều khiển camera gimbal SIYI qua giao thức UDP: xoay ngang, ngẩng/cúi, zoom quang học, chuyển chế độ chụp/quay, giúp người vận hành chủ động hướng quan sát vào khu vực nghi vấn mà không phụ thuộc hướng bay của UAV.</p>
+<h3>5.6. Nhật ký và dữ liệu nhiệm vụ</h3>
+<p>Toàn bộ diễn biến nhiệm vụ (lệnh điều khiển, trạng thái UAV, thời điểm và tọa độ phát hiện người, ảnh chụp, video ghi hình) được lưu trữ có hệ thống, phục vụ tổng kết, rút kinh nghiệm và làm bằng chứng phục vụ chỉ huy hiện trường.</p>
+
+<h2>6. QUY TRÌNH VẬN HÀNH ĐIỂN HÌNH</h2>
+<p>Một nhiệm vụ tìm kiếm cứu nạn điển hình với sản phẩm được thực hiện theo các bước: <b>(1)</b> Khởi động phần mềm, kết nối lần lượt các UAV tham gia nhiệm vụ; kiểm tra trạng thái GPS, pin, chế độ bay của từng máy. <b>(2)</b> Vẽ đa giác khu vực tìm kiếm trên bản đồ vệ tinh; nhập số UAV tham gia và khoảng cách quét; phần mềm tự động chia vùng, sinh tuyến bay và xuất kế hoạch bay cho từng UAV. <b>(3)</b> Nạp kế hoạch bay, thiết lập độ cao và tốc độ, ra lệnh cất cánh thực hiện nhiệm vụ; bật chế độ nhận diện AI và chế độ tìm kiếm. <b>(4)</b> Giám sát đồng thời các luồng video và vị trí đội bay trên bản đồ; khi hệ thống phát hiện người, kiểm tra ảnh bằng chứng và tọa độ được ghi nhận; xác nhận điều phối UAV cứu trợ bay đến vị trí nạn nhân để xác minh hoặc thả hàng cứu trợ. <b>(5)</b> Kết thúc nhiệm vụ, thu hồi đội bay, tổng hợp nhật ký, ảnh và video phục vụ báo cáo chỉ huy.</p>
+
+<h2>7. KẾT QUẢ THỬ NGHIỆM VÀ TỰ ĐÁNH GIÁ</h2>
+<p>Sản phẩm được kiểm chứng qua hai giai đoạn: thử nghiệm trên môi trường mô phỏng (PX4 SITL) và thử nghiệm trên hệ thống UAV thực. Kết quả cho thấy: phần mềm kết nối và điều khiển ổn định đồng thời nhiều UAV; luồng video thời gian thực hiển thị mượt, độ trễ thấp; mô hình AI phát hiện người đạt độ chính xác cao trong các điều kiện thử nghiệm, tần suất xử lý phù hợp năng lực tính toán của trạm; thuật toán phân chia khu vực và sinh tuyến bay tạo ra các kế hoạch bay hợp lệ, nạp và thực thi thành công trên UAV chuẩn PX4; toàn hệ thống vận hành ổn định trong thời gian thử nghiệm liên tục. Sản phẩm đã hoàn thành đầy đủ các chỉ tiêu đăng ký trong thuyết minh đề tài.</p>
+
+<h2>8. CÁC SẢN PHẨM TƯƠNG TỰ HIỆN CÓ TRÊN THỊ TRƯỜNG</h2>
+<p>Hiện nay trên thế giới có một số phần mềm trạm điều khiển mặt đất phổ biến, tuy nhiên mỗi sản phẩm đều có giới hạn nhất định khi đặt vào bài toán tìm kiếm cứu nạn đa UAV có ứng dụng AI:</p>
+<table>
+<tr><th>Sản phẩm</th><th>Nhà phát triển</th><th>Đặc điểm chính</th><th>Hạn chế so với sản phẩm của đề tài</th></tr>
+<tr><td><b>QGroundControl</b></td><td>Cộng đồng PX4 (mã nguồn mở)</td><td>GCS phổ biến nhất cho PX4/ArduPilot; lập nhiệm vụ waypoint, hiển thị video</td><td>Thiết kế chủ yếu cho 01 UAV; không có AI phát hiện người; không tự động phân chia khu vực cho nhiều UAV</td></tr>
+<tr><td><b>Mission Planner</b></td><td>Cộng đồng ArduPilot (mã nguồn mở)</td><td>Lập nhiệm vụ chi tiết, phân tích log chuyên sâu</td><td>Giao diện phức tạp với người dùng phi kỹ thuật; không tích hợp AI; hỗ trợ đa UAV hạn chế</td></tr>
+<tr><td><b>UgCS</b></td><td>SPH Engineering (thương mại)</td><td>Hỗ trợ đa UAV, khảo sát địa hình</td><td>Chi phí bản quyền cao; không có module AI phát hiện nạn nhân; khó tùy biến cho quy trình cứu hộ trong nước</td></tr>
+<tr><td><b>DJI FlightHub 2</b></td><td>DJI (thương mại)</td><td>Quản lý đội UAV DJI trên nền tảng đám mây</td><td>Chỉ dùng cho hệ sinh thái DJI khép kín; dữ liệu lưu trên đám mây nước ngoài, khó đáp ứng yêu cầu an toàn thông tin</td></tr>
+<tr><td><b>Auterion Mission Control / FlytBase</b></td><td>Auterion, FlytBase (thương mại)</td><td>Nền tảng vận hành UAV doanh nghiệp</td><td>Chi phí cao, phụ thuộc hạ tầng nước ngoài; không chuyên biệt cho nghiệp vụ tìm kiếm cứu nạn</td></tr>
+</table>
+<p>So với các sản phẩm trên, phần mềm của đề tài có các <b>điểm mới và lợi thế</b>: (i) tích hợp trọn vẹn trong một hệ thống cả ba năng lực – điều khiển đồng thời nhiều UAV, xử lý video thời gian thực và AI phát hiện người – vốn đang tách rời ở các sản phẩm thương mại; (ii) thuật toán phân chia khu vực và sinh tuyến bay serpentine là kết quả khoa học riêng đã được công bố quốc tế, phù hợp đặc thù bài toán bao phủ vùng tìm kiếm; (iii) làm chủ hoàn toàn mã nguồn trong nước, vận hành cục bộ không phụ thuộc nền tảng đám mây nước ngoài, thuận lợi cho việc tùy biến theo quy trình của lực lượng cứu hộ Việt Nam và bảo đảm an toàn thông tin; (iv) tương thích chuẩn mở MAVLink/PX4 và định dạng .plan của QGroundControl nên có thể phối hợp với các hệ sinh thái UAV mã nguồn mở sẵn có.</p>
+
+<h2>9. DỰ KIẾN HƯỚNG PHÁT TRIỂN CỦA SẢN PHẨM</h2>
+<p><b>a) Nâng cao năng lực trí tuệ nhân tạo:</b> huấn luyện bổ sung mô hình trên tập dữ liệu ảnh UAV trong điều kiện khó (ban đêm, sương mù, tán cây che khuất); tích hợp camera ảnh nhiệt để phát hiện nạn nhân qua thân nhiệt; nghiên cứu bổ sung bài toán theo dõi đối tượng (tracking) và ước lượng chính xác tọa độ nạn nhân từ ảnh kết hợp dữ liệu tư thế UAV.</p>
+<p><b>b) Mở rộng quy mô đội bay và truyền thông:</b> nâng số lượng UAV điều khiển đồng thời vượt mức 06 máy theo hướng kiến trúc bầy đàn (swarm); bổ sung kênh truyền dữ liệu qua mạng 4G/5G để mở rộng bán kính hoạt động; nghiên cứu cơ chế chuyển giao nhiệm vụ tự động khi một UAV gặp sự cố hoặc cạn pin.</p>
+<p><b>c) Hoàn thiện sản phẩm hướng người dùng cuối:</b> phát triển phiên bản giao diện web cho trung tâm chỉ huy truy cập từ xa; bổ sung bản đồ số ngoại tuyến của Việt Nam phục vụ tác chiến ở vùng không có Internet; xây dựng bộ tài liệu hướng dẫn vận hành và quy trình huấn luyện kíp điều khiển.</p>
+<p><b>d) Chuyển giao và ứng dụng thực tiễn:</b> phối hợp thử nghiệm thực địa với các đơn vị phòng chống thiên tai – tìm kiếm cứu nạn; hoàn thiện hồ sơ đăng ký bản quyền phần mềm; hướng tới chuyển giao công nghệ cho các đơn vị chức năng và phát triển thành đề tài cấp cao hơn nhằm hoàn thiện thành hệ thống ứng dụng thực tế phục vụ công tác cứu hộ cứu nạn quốc gia.</p>
+
+<h2>10. KẾT LUẬN</h2>
+<p>Sản phẩm phần mềm trạm trung tâm của đề tài CN25.05 đã hoàn thành đầy đủ các nội dung đăng ký: điều khiển và giám sát đồng thời nhiều UAV trên một giao diện thống nhất, tiếp nhận và xử lý video thời gian thực, ứng dụng AI phát hiện người phục vụ tìm kiếm cứu nạn, và lập kế hoạch bay tự động bằng thuật toán đã được công bố quốc tế. Sản phẩm thể hiện tính mới về giải pháp tích hợp, có ý nghĩa khoa học và thực tiễn rõ rệt, tạo nền tảng vững chắc cho việc phát triển các hệ thống UAV thông minh phục vụ công tác cứu hộ cứu nạn tại Việt Nam.</p>
+
+<h2>TÀI LIỆU THAM KHẢO</h2>
+<p>[1] Vu Dinh Nam et al., “Planning for Multi-UAV Control Systems: Edge-Oriented Partitioning and Serpentine Routing”, <i>Proceedings of the 8th International Conference on Engineering Mechanics and Automation (ICEMA 2025)</i>, ISBN 978-604-357-500-2, DOI: 10.15625/vap.2026.0020.</p>
+<p>[2] PX4 Autopilot &amp; MAVSDK Documentation, https://docs.px4.io, https://mavsdk.mavlink.io.</p>
+<p>[3] Ultralytics YOLO Documentation, https://docs.ultralytics.com.</p>
+<p>[4] QGroundControl Plan File Format, https://dev.qgroundcontrol.com.</p>
+
+<p style="text-align: right; margin-top: 24pt;"><i>Hà Nội, ngày ..... tháng ..... năm .......</i></p>
+<p style="text-align: right;"><b>Chủ nhiệm đề tài</b></p>
+<p style="text-align: right; margin-top: 48pt;"><b>Vũ Đình Nam</b></p>
+
+</body>
+</html>
