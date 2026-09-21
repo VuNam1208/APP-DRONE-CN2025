@@ -6,24 +6,45 @@ GPS_DIR = os.path.join(BASE_DIR, "gps")
 KHUNG_DIR = os.path.join(BASE_DIR, "khung")
 DRONE_NUM_PATH = os.path.join(BASE_DIR, "drone_num.txt")
 ID_DRONE_PATH = os.path.join(BASE_DIR, "ID_drone.txt")
+ULTRALYTICS_CONFIG_DIR = os.path.join(BASE_DIR, ".ultralytics")
+os.makedirs(ULTRALYTICS_CONFIG_DIR, exist_ok=True)
+os.environ.setdefault("YOLO_CONFIG_DIR", ULTRALYTICS_CONFIG_DIR)
 os.environ.setdefault(
     "QTWEBENGINE_CHROMIUM_FLAGS",
     "--disable-gpu-compositing --disable-background-timer-throttling --disable-renderer-backgrounding",
 )
 from PyQt5 import QtCore, QtGui
 import numpy as np
-from PyQt5.QtWidgets import QApplication, QGraphicsDropShadowEffect, QLabel, QMainWindow, QPushButton, QSizeGrip, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDoubleSpinBox,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QGridLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSizeGrip,
+    QSpinBox,
+    QWidget,
+)
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal, QPoint, QPropertyAnimation
 from PyQt5.QtGui import QImage, QPixmap, QColor
 from ui_interface import Ui_MainWindow
 from integrated_map import setup_integrated_map
-from replan_coordinator import ReplanConfig, ReplanCoordinator
+from replan_coordinator import ReplanConfig, ReplanCoordinator, haversine_m
+from simulation_controller import SimulationController, SimulationStatus
+from simulation_metrics import export_metrics_csv
 import asyncio, cv2
 from mavsdk import System
 from qasync import QEventLoop
 import subprocess
 import math
 import time
+import traceback
+import tempfile
 
 drone_1 = System(mavsdk_server_address="localhost", port=50060)
 drone_2 = System(mavsdk_server_address="localhost", port=50061)
@@ -745,11 +766,22 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         QMainWindow.__init__(self)
+        self.configure_webengine_storage()
         self.ui = Ui_MainWindow()
 
         self.ui.setupUi(self)
         self.drones = [drone_1, drone_2, drone_3, drone_4, drone_5, drone_6]
         self.setup_integrated_map()
+        self.operation_mode = "LIVE"
+        self.sim_controller = None
+        self.last_sim_metrics = None
+        self.sim_trails = {}
+        self.sim_trail_frame = 0
+        self.sim_timer = QTimer(self)
+        self.sim_timer.setInterval(100)
+        self.sim_timer.timeout.connect(self._simulation_tick)
+        self._sim_last_tick = None
+        self.setup_simulation_controls()
         self.ensure_data_dirs()
         self.replan = ReplanCoordinator(
             mission_dir=MISSION_DIR,
@@ -796,11 +828,8 @@ class MainWindow(QMainWindow):
         self.bay06 = False
 
 
-        # Loop is set in __main__ but not running yet; use loop.create_task
-        # (asyncio.create_task requires a running loop on Python 3.12+).
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.start_check_detected_person())
-        loop.create_task(self.start_replan_monitor())
+        # Start async monitors on the first Qt tick, after qasync is running.
+        QTimer.singleShot(0, self.start_background_tasks)
 
 
 
@@ -825,10 +854,6 @@ class MainWindow(QMainWindow):
         self.ui.down6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="down")))
         self.ui.Bay.clicked.connect(lambda: asyncio.create_task(self.bay6()))
         self.connect_drone_control_buttons()
-
-
-
-
 
         self.connect_mission_buttons()
 
@@ -956,9 +981,34 @@ class MainWindow(QMainWindow):
 
         self.configure_main_navigation()
 
+    @staticmethod
+    def configure_webengine_storage():
+        """Give each app process an isolated Chromium storage directory."""
+        try:
+            from PyQt5.QtWebEngineWidgets import QWebEngineProfile
 
+            profile_root = os.path.join(
+                tempfile.gettempdir(), f"app_drone_qtwebengine_{os.getpid()}"
+            )
+            cache_dir = os.path.join(profile_root, "cache")
+            storage_dir = os.path.join(profile_root, "storage")
+            os.makedirs(cache_dir, exist_ok=True)
+            os.makedirs(storage_dir, exist_ok=True)
+            profile = QWebEngineProfile.defaultProfile()
+            profile.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
+            profile.setCachePath(cache_dir)
+            profile.setPersistentStoragePath(storage_dir)
+        except Exception as exc:
+            print(f"QtWebEngine storage setup warning: {exc}", file=sys.stderr)
 
-
+    def start_background_tasks(self):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError as exc:
+            print(f"Async monitor startup warning: {exc}", file=sys.stderr)
+            return
+        loop.create_task(self.start_check_detected_person())
+        loop.create_task(self.start_replan_monitor())
 
     def configure_main_navigation(self):
         visible_pages = (
@@ -1024,7 +1074,409 @@ class MainWindow(QMainWindow):
     def setup_integrated_map(self):
         setup_integrated_map(self)
 
+    def setup_simulation_controls(self):
+        panel = QFrame(self.ui.page_map)
+        panel.setObjectName("simulation_control_panel")
+        panel.setMaximumHeight(158)
+        panel.setStyleSheet(
+            "QFrame#simulation_control_panel { background: #eef6ff; "
+            "border: 1px solid #8fbfe8; border-radius: 6px; }"
+            "QLabel { color: #12344d; background: transparent; border: 0; }"
+            "QPushButton { min-height: 26px; border-radius: 4px; "
+            "background: #247fbd; color: white; font-weight: 700; padding: 0 9px; }"
+            "QPushButton:disabled { background: #b7c3ce; color: #edf2f7; }"
+            "QComboBox, QSpinBox, QDoubleSpinBox { min-height: 26px; "
+            "background: white; color: #172033; border: 1px solid #9dccf1; "
+            "border-radius: 4px; padding: 0 5px; }"
+        )
+        layout = QGridLayout(panel)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setHorizontalSpacing(7)
+        layout.setVerticalSpacing(5)
+
+        self.sim_mode_combo = QComboBox(panel)
+        self.sim_mode_combo.addItems(["LIVE", "SIM"])
+        self.sim_strategy_combo = QComboBox(panel)
+        self.sim_strategy_combo.addItems(["Proposed", "B1", "B0"])
+        self.sim_uav_combo = QComboBox(panel)
+        self.sim_uav_combo.addItems(["UAV 1", "UAV 2", "UAV 3", "UAV 4"])
+        self.sim_failure_combo = QComboBox(panel)
+        self.sim_failure_combo.addItem("Lost link", "lost_link")
+        self.sim_failure_combo.addItem("Low battery", "low_battery")
+        self.sim_progress_spin = QSpinBox(panel)
+        self.sim_progress_spin.setRange(1, 100)
+        self.sim_progress_spin.setValue(40)
+        self.sim_progress_spin.setSuffix(" %")
+        self.sim_speed_spin = QDoubleSpinBox(panel)
+        self.sim_speed_spin.setRange(0.1, 30.0)
+        self.sim_speed_spin.setDecimals(1)
+        self.sim_speed_spin.setValue(2.0)
+        self.sim_speed_spin.setSuffix(" m/s")
+        self.sim_playback_combo = QComboBox(panel)
+        self.sim_playback_combo.addItem("1x", 1.0)
+        self.sim_playback_combo.addItem("5x", 5.0)
+        self.sim_playback_combo.addItem("10x", 10.0)
+
+        controls = (
+            ("Mode", self.sim_mode_combo),
+            ("Strategy", self.sim_strategy_combo),
+            ("Failed", self.sim_uav_combo),
+            ("Failure", self.sim_failure_combo),
+            ("At", self.sim_progress_spin),
+            ("Speed", self.sim_speed_spin),
+            ("Playback", self.sim_playback_combo),
+        )
+        for column, (title, widget) in enumerate(controls):
+            label = QLabel(title, panel)
+            label.setStyleSheet("font-size: 10px; font-weight: 700;")
+            layout.addWidget(label, 0, column)
+            layout.addWidget(widget, 1, column)
+
+        self.sim_start_btn = QPushButton("Start", panel)
+        self.sim_pause_btn = QPushButton("Pause", panel)
+        self.sim_inject_btn = QPushButton("Inject Failure", panel)
+        self.sim_reset_btn = QPushButton("Reset", panel)
+        layout.addWidget(self.sim_start_btn, 2, 0)
+        layout.addWidget(self.sim_pause_btn, 2, 1)
+        layout.addWidget(self.sim_inject_btn, 2, 2)
+        layout.addWidget(self.sim_reset_btn, 2, 3)
+
+        self.sim_status_label = QLabel("LIVE controls active", panel)
+        self.sim_status_label.setWordWrap(True)
+        self.sim_status_label.setStyleSheet(
+            "font-size: 11px; font-weight: 700; color: #0f4c81; padding-left: 6px;"
+        )
+        layout.addWidget(self.sim_status_label, 2, 4, 1, 3)
+
+        self.sim_metrics_label = QLabel("Results: --", panel)
+        self.sim_metrics_label.setWordWrap(True)
+        self.sim_metrics_label.setStyleSheet(
+            "font-size: 11px; font-weight: 700; color: #172033; padding-left: 4px;"
+        )
+        self.sim_export_btn = QPushButton("Export CSV", panel)
+        self.sim_export_btn.setEnabled(False)
+        layout.addWidget(self.sim_metrics_label, 3, 0, 1, 6)
+        layout.addWidget(self.sim_export_btn, 3, 6)
+
+        self.ui.verticalLayout_15.insertWidget(2, panel)
+        self.sim_control_panel = panel
+        self.sim_mode_combo.currentTextChanged.connect(self._change_operation_mode)
+        self.sim_start_btn.clicked.connect(self.start_offline_simulation)
+        self.sim_pause_btn.clicked.connect(self.toggle_simulation_pause)
+        self.sim_inject_btn.clicked.connect(self.inject_simulation_failure)
+        self.sim_reset_btn.clicked.connect(self.reset_offline_simulation)
+        self.sim_export_btn.clicked.connect(self.export_simulation_result)
+        self._set_sim_controls_enabled(False)
+
+    def _set_sim_controls_enabled(self, enabled):
+        for widget in (
+            self.sim_strategy_combo,
+            self.sim_uav_combo,
+            self.sim_failure_combo,
+            self.sim_progress_spin,
+            self.sim_speed_spin,
+            self.sim_playback_combo,
+            self.sim_start_btn,
+            self.sim_pause_btn,
+            self.sim_inject_btn,
+            self.sim_reset_btn,
+        ):
+            widget.setEnabled(enabled)
+        self.sim_pause_btn.setEnabled(False)
+        self.sim_inject_btn.setEnabled(False)
+
+    def _set_sim_configuration_enabled(self, enabled):
+        for widget in (
+            self.sim_strategy_combo,
+            self.sim_uav_combo,
+            self.sim_failure_combo,
+            self.sim_progress_spin,
+            self.sim_speed_spin,
+        ):
+            widget.setEnabled(enabled)
+
+    def _set_live_controls_enabled(self, enabled):
+        for name in (
+            "btn_connect",
+            "btn_algorithm",
+            "connect_all",
+            "start",
+            "btn_replan_toggle",
+            "btn_replan_force",
+            "btn_sim_fail",
+        ):
+            widget = getattr(self.ui, name, None) or getattr(self, name, None)
+            if widget is not None:
+                widget.setEnabled(enabled)
+
+    def _change_operation_mode(self, mode):
+        requested = str(mode).upper()
+        if requested == self.operation_mode:
+            return
+        if (
+            self.sim_controller is not None
+            and self.sim_controller.status
+            in (SimulationStatus.RUNNING, SimulationStatus.PAUSED)
+        ):
+            self.sim_mode_combo.blockSignals(True)
+            self.sim_mode_combo.setCurrentText(self.operation_mode)
+            self.sim_mode_combo.blockSignals(False)
+            self.sim_status_label.setText("Pause and Reset SIM before changing mode")
+            return
+
+        if self.sim_controller is not None:
+            self.reset_offline_simulation()
+        self.operation_mode = requested
+        sim_enabled = requested == "SIM"
+        self._set_sim_controls_enabled(sim_enabled)
+        self._set_live_controls_enabled(not sim_enabled)
+        self.sim_status_label.setText(
+            "Offline simulation ready" if sim_enabled else "LIVE controls active"
+        )
+        if sim_enabled:
+            self.ui.stackedWidget.setCurrentWidget(self.ui.page_map)
+
+    def _simulation_uav_ids(self):
+        ids = []
+        for index in range(1, 5):
+            if os.path.isfile(self.mission_plan_path(index)):
+                ids.append(index)
+        return tuple(ids)
+
+    def start_offline_simulation(self):
+        if self.operation_mode != "SIM":
+            return
+        if self.sim_controller is not None:
+            if self.sim_controller.status == SimulationStatus.PAUSED:
+                self.toggle_simulation_pause()
+            return
+
+        try:
+            uav_ids = self._simulation_uav_ids()
+            failed_uav = self.sim_uav_combo.currentIndex() + 1
+            if failed_uav not in uav_ids:
+                raise FileNotFoundError(
+                    f"Missing mission/points{failed_uav}.plan for failed UAV"
+                )
+            self.sim_controller = SimulationController(
+                mission_dir=MISSION_DIR,
+                uav_ids=uav_ids,
+                speed_mps=self.sim_speed_spin.value(),
+                failed_uav=failed_uav,
+                failure_progress=self.sim_progress_spin.value() / 100.0,
+                failure_type=self.sim_failure_combo.currentData(),
+                strategy=self.sim_strategy_combo.currentText(),
+            )
+        except Exception as exc:
+            self.sim_controller = None
+            QMessageBox.warning(self, "Offline SIM", str(exc))
+            self.sim_status_label.setText(f"SIM setup failed: {exc}")
+            return
+
+        self.sim_controller.on("state_changed", self._on_sim_state_changed)
+        self.sim_controller.on("positions_updated", self._on_sim_positions)
+        self.sim_controller.on("failure_injected", self._on_sim_failure)
+        self.sim_controller.on("replan_completed", self._on_sim_replan)
+        self.sim_controller.on("simulation_finished", self._on_sim_finished)
+        self.sim_trails = {
+            drone_id: [list(drone.position)]
+            for drone_id, drone in self.sim_controller.drones.items()
+            if drone.position is not None
+        }
+        self.sim_trail_frame = 0
+        self.last_sim_metrics = None
+        self.sim_metrics_label.setText("Results: running")
+        self.sim_export_btn.setEnabled(False)
+        self.map_bridge.clearSimulation()
+        self.map_bridge.setSimulationRoutes(
+            {
+                drone_id: drone.original_route
+                for drone_id, drone in self.sim_controller.drones.items()
+            },
+            "initial",
+        )
+        self.map_bridge.setSimulationPositions(self.sim_controller.snapshot()["drones"])
+        self.map_bridge.fitSimulationBounds()
+        self.sim_controller.start()
+        self._set_sim_configuration_enabled(False)
+        self._sim_last_tick = time.perf_counter()
+        self.sim_timer.start()
+        self.sim_start_btn.setEnabled(False)
+        self.sim_pause_btn.setEnabled(True)
+        self.sim_inject_btn.setEnabled(True)
+        self.sim_status_label.setText("SIM running")
+
+    def toggle_simulation_pause(self):
+        if self.sim_controller is None:
+            return
+        if self.sim_controller.status == SimulationStatus.RUNNING:
+            self.sim_controller.pause()
+            self.sim_timer.stop()
+            self.sim_pause_btn.setText("Resume")
+            self.sim_status_label.setText("SIM paused")
+        elif self.sim_controller.status == SimulationStatus.PAUSED:
+            self.sim_controller.resume()
+            self._sim_last_tick = time.perf_counter()
+            self.sim_timer.start()
+            self.sim_pause_btn.setText("Pause")
+            self.sim_status_label.setText("SIM running")
+
+    def inject_simulation_failure(self):
+        if self.sim_controller is None:
+            return
+        try:
+            self.sim_controller.inject_failure(
+                self.sim_uav_combo.currentIndex() + 1,
+                self.sim_failure_combo.currentData(),
+            )
+        except Exception as exc:
+            self.sim_status_label.setText(f"Failure injection failed: {exc}")
+
+    def reset_offline_simulation(self):
+        self.sim_timer.stop()
+        if self.sim_controller is not None:
+            self.sim_controller.reset()
+        self.sim_controller = None
+        self.last_sim_metrics = None
+        self.sim_trails = {}
+        self._sim_last_tick = None
+        self.map_bridge.clearSimulation()
+        self._set_sim_configuration_enabled(self.operation_mode == "SIM")
+        self.sim_start_btn.setEnabled(self.operation_mode == "SIM")
+        self.sim_pause_btn.setEnabled(False)
+        self.sim_pause_btn.setText("Pause")
+        self.sim_inject_btn.setEnabled(False)
+        self.sim_status_label.setText(
+            "Offline simulation ready"
+            if self.operation_mode == "SIM"
+            else "LIVE controls active"
+        )
+        self.sim_metrics_label.setText("Results: --")
+        self.sim_export_btn.setEnabled(False)
+
+    def _simulation_tick(self):
+        if self.operation_mode != "SIM" or self.sim_controller is None:
+            self.sim_timer.stop()
+            return
+        now = time.perf_counter()
+        if self._sim_last_tick is None:
+            self._sim_last_tick = now
+            return
+        real_dt = min(0.25, max(0.0, now - self._sim_last_tick))
+        self._sim_last_tick = now
+        playback = float(self.sim_playback_combo.currentData())
+        self.sim_controller.step(real_dt * playback)
+
+    def _on_sim_state_changed(self, snapshot):
+        states = ", ".join(
+            f"U{drone_id}:{state['status']}"
+            for drone_id, state in snapshot["drones"].items()
+        )
+        self.sim_status_label.setText(states)
+
+    def _on_sim_positions(self, snapshot):
+        self.map_bridge.setSimulationPositions(snapshot["drones"])
+        for drone_id, state in snapshot["drones"].items():
+            point = state.get("position")
+            if point is None:
+                continue
+            trail = self.sim_trails.setdefault(drone_id, [])
+            if not trail or haversine_m(
+                trail[-1][0], trail[-1][1], point[0], point[1]
+            ) >= 1.0:
+                trail.append([point[0], point[1]])
+        self.sim_trail_frame += 1
+        if self.sim_trail_frame % 5 == 0:
+            self.map_bridge.setSimulationRoutes(self.sim_trails, "flown")
+
+    def _on_sim_failure(self, event):
+        drone_id = event["drone_id"]
+        position = event["position"]
+        drone = self.sim_controller.drones[drone_id]
+        remaining = [position] + drone.route[drone.segment_index + 1 :]
+        self.map_bridge.markFailedDrone(drone_id, position)
+        self.map_bridge.setSimulationRoutes({drone_id: remaining}, "failed")
+        self.map_bridge.showSimulationEvent(
+            f"UAV {drone_id} {event['failure_type']} at t={event['simulation_time_s']:.1f}s"
+        )
+        self.log_replan(
+            f"[SIM] UAV {drone_id} failure={event['failure_type']} "
+            f"at t={event['simulation_time_s']:.1f}s"
+        )
+
+    def _on_sim_replan(self, event):
+        result = event["result"]
+        if result is None:
+            message = f"{event['strategy']}: no route replacement"
+        else:
+            routes = {}
+            for drone_id, route in result.routes.items():
+                current = self.sim_controller.drones[drone_id].position
+                routes[drone_id] = ([current] if current is not None else []) + list(route)
+            self.map_bridge.setSimulationRoutes(routes, "replan")
+            message = (
+                f"{event['strategy']} replan {result.conflicts_before}"
+                f"->{result.conflicts_after} conflicts in "
+                f"{event['compute_time_s'] * 1000.0:.1f} ms"
+            )
+        self.map_bridge.showSimulationEvent(message)
+        self.map_bridge.fitSimulationBounds()
+        self.log_replan(f"[SIM] {message}")
+        self._update_simulation_metrics_display()
+
+    def _on_sim_finished(self, snapshot):
+        self.sim_timer.stop()
+        self.map_bridge.setSimulationRoutes(self.sim_trails, "flown")
+        self.map_bridge.showSimulationEvent(
+            f"Simulation finished at t={snapshot['simulation_time_s']:.1f}s"
+        )
+        self.sim_pause_btn.setEnabled(False)
+        self.sim_inject_btn.setEnabled(False)
+        self.sim_status_label.setText(
+            f"SIM finished | t={snapshot['simulation_time_s']:.1f}s"
+        )
+        self.log_replan(
+            f"[SIM] finished at t={snapshot['simulation_time_s']:.1f}s"
+        )
+        self._update_simulation_metrics_display()
+        self.sim_export_btn.setEnabled(self.last_sim_metrics is not None)
+
+    def _update_simulation_metrics_display(self):
+        if self.sim_controller is None:
+            return
+        metrics = self.sim_controller.metrics()
+        if metrics is None:
+            return
+        metrics["configured_failure_progress"] = self.sim_progress_spin.value() / 100.0
+        metrics["playback_x"] = float(self.sim_playback_combo.currentData())
+        self.last_sim_metrics = metrics
+        self.sim_metrics_label.setText(
+            f"eta={metrics['eta_pct']:.1f}% | Tfin={metrics['t_fin_s']:.1f}s | "
+            f"Lmax={metrics['l_max_m']:.1f}m | "
+            f"Nc={metrics['n_c_before']}->{metrics['n_c_after']} | "
+            f"Treact={metrics['t_react_s']:.2f}s"
+        )
+
+    def export_simulation_result(self, output_path=None):
+        if self.last_sim_metrics is None:
+            self.sim_status_label.setText("No completed SIM result to export")
+            return None
+        if isinstance(output_path, bool):
+            output_path = None
+        results_dir = os.path.join(BASE_DIR, "results")
+        os.makedirs(results_dir, exist_ok=True)
+        if not output_path:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(results_dir, f"sim_result_{timestamp}.csv")
+
+        output_path = export_metrics_csv(self.last_sim_metrics, output_path)
+        self.sim_status_label.setText(f"Exported {os.path.basename(output_path)}")
+        self.log_replan(f"[SIM] result exported: {output_path}")
+        return output_path
+
     def get_drone(self, index):
+        if getattr(self, "operation_mode", "LIVE") == "SIM":
+            raise RuntimeError("MAVSDK access is disabled in Offline SIM mode")
         return self.drones[index - 1]
 
     def drone_status(self, index):
@@ -1204,6 +1656,9 @@ class MainWindow(QMainWindow):
     async def start_replan_monitor(self):
         while True:
             try:
+                if getattr(self, "operation_mode", "LIVE") != "LIVE":
+                    await asyncio.sleep(1.0)
+                    continue
                 if self.replan.can_replan_now():
                     failed = self.replan.detect_failures()
                     for failed_index in failed:
@@ -1214,6 +1669,9 @@ class MainWindow(QMainWindow):
             await asyncio.sleep(1.0)
 
     async def execute_replan_for_failure(self, failed_index: int):
+        if getattr(self, "operation_mode", "LIVE") != "LIVE":
+            self.log_replan("[SIM] LIVE replan/MAVSDK path blocked in Offline SIM mode")
+            return
         if self.replan._replan_in_progress:
             return
         self.replan.begin_replan()
@@ -1892,6 +2350,9 @@ class MainWindow(QMainWindow):
         await self.information(index)
 
     async def all(self):
+        if getattr(self, "operation_mode", "LIVE") != "LIVE":
+            self.sim_status_label.setText("Use the SIM Start button in Offline SIM mode")
+            return
         await asyncio.gather(self.upload_ms_all(), self.detect_object(), self.wait_mission())
 
     async def wait_mission(self):
@@ -1901,7 +2362,12 @@ class MainWindow(QMainWindow):
                 break
             await asyncio.sleep(2)
 
+def log_unhandled_exception(exc_type, exc_value, exc_traceback):
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
+
+
 if __name__ == "__main__":
+    sys.excepthook = log_unhandled_exception
     app = QApplication(sys.argv)
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)

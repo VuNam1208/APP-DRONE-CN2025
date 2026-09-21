@@ -29,63 +29,18 @@ from replan_coordinator import (
     ReplanCoordinator,
     count_conflicts,
     estimate_grid_spacing_m,
-    haversine_m,
     load_waypoints_from_plan,
-    path_length_m,
     remaining_waypoints,
+)
+from simulation_metrics import (
+    coverage_ratio,
+    finish_time_s,
+    max_path_m,
+    residual_pool,
+    unique_window,
 )
 
 Point = Tuple[float, float]
-
-
-def unique_window(points: Sequence[Point], window: int = 12, thresh_m: float = 1.0) -> List[Point]:
-    unique: List[Point] = []
-    for point in points:
-        if not unique:
-            unique.append(point)
-            continue
-        near = unique[-window:]
-        if min(haversine_m(point[0], point[1], q[0], q[1]) for q in near) > thresh_m:
-            unique.append(point)
-    return unique
-
-
-def point_covered(target: Point, routes: Dict[int, Sequence[Point]], radius_m: float) -> bool:
-    for route in routes.values():
-        for wp in route:
-            if haversine_m(target[0], target[1], wp[0], wp[1]) <= radius_m:
-                return True
-    return False
-
-
-def coverage_ratio(
-    targets: Sequence[Point],
-    routes: Dict[int, Sequence[Point]],
-    radius_m: float,
-) -> float:
-    if not targets:
-        return 100.0
-    hit = sum(1 for t in targets if point_covered(t, routes, radius_m))
-    return 100.0 * hit / len(targets)
-
-
-def finish_time_s(
-    routes: Dict[int, Sequence[Point]],
-    delays: Dict[int, float],
-    speed_mps: float,
-) -> float:
-    if speed_mps <= 0 or not routes:
-        return 0.0
-    return max(
-        float(delays.get(i, 0.0)) + path_length_m(route) / speed_mps
-        for i, route in routes.items()
-    )
-
-
-def max_path_m(routes: Dict[int, Sequence[Point]]) -> float:
-    if not routes:
-        return 0.0
-    return max(path_length_m(route) for route in routes.values())
 
 
 @dataclass
@@ -126,18 +81,6 @@ def seed_states(
         coord.mark_in_mission(i, True)
         coord.states[i].failed = False
     return positions
-
-
-def residual_pool(
-    plans: Dict[int, List[Point]],
-    positions: Dict[int, Point],
-    failed: int,
-    alive: Sequence[int],
-) -> List[Point]:
-    pool: List[Point] = list(remaining_waypoints(positions[failed], plans[failed]))
-    for i in alive:
-        pool.extend(remaining_waypoints(positions[i], plans[i]))
-    return unique_window(pool)
 
 
 def b0_routes(

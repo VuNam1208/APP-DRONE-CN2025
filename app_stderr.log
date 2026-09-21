@@ -1,0 +1,2 @@
+C:\Users\HP\OneDrive - TRƯỜNG ĐẠI HỌC CÔNG NGHỆ\Dạy_UET\APP-DRONE-CN2025\main.py:829: DeprecationWarning: There is no current event loop
+  loop = asyncio.get_event_loop()

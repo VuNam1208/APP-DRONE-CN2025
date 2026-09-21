@@ -1,0 +1,466 @@
+% !TEX program = xelatex
+% Biên dịch: xelatex main.tex  (chạy 2 lần nếu cần cập nhật tham chiếu)
+\documentclass[12pt,a4paper]{article}
+
+% ---------- Encoding & tiếng Việt (XeLaTeX khuyến nghị) ----------
+\usepackage{fontspec}
+\IfFontExistsTF{Times New Roman}{%
+  \setmainfont{Times New Roman}%
+}{%
+  \setmainfont{TeX Gyre Termes}%
+}
+% Không dùng babel/vietnamese để tránh lỗi môi trường; Unicode UTF-8 qua fontspec.
+
+% ---------- Hình học trang ----------
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---------- Toán, hình, bảng ----------
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{placeins}
+\captionsetup{font=small,labelfont=bf,skip=6pt}
+
+% ---------- Thuật toán ----------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algrenewcommand\algorithmicrequire{\textbf{Đầu vào:}}
+\algrenewcommand\algorithmicensure{\textbf{Đầu ra:}}
+
+% ---------- Liên kết & tiện ích ----------
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{url}
+\Urlmuskip=0mu plus 1mu
+
+% ---------- Macro ký hiệu ----------
+\newcommand{\Uset}{\mathcal{U}}
+\newcommand{\Ua}{\mathcal{U}_{a}}
+\newcommand{\Premain}{P_{\mathrm{remain}}}
+\newcommand{\Tfin}{T_{\mathrm{fin}}}
+\newcommand{\Lmax}{L_{\mathrm{max}}}
+\newcommand{\Tlost}{T_{\mathrm{lost}}}
+\newcommand{\Treact}{T_{\mathrm{react}}}
+\newcommand{\dsaf}{d_{\mathrm{safe}}}
+\newcommand{\bmin}{b_{\mathrm{min}}}
+\newcommand{\Nc}{N_{c}}
+\newcommand{\Dh}{\Delta h}
+\newcommand{\tauzero}{\tau_{0}}
+
+\title{\textbf{Điều phối lại quỹ đạo bay cho hệ thống đa UAV khi xảy ra sự cố mất điều khiển hoặc cạn pin, có xét ràng buộc tránh va chạm}}
+\author{Vũ Đình Nam\textsuperscript{1}\\[0.4em]
+\normalsize\textsuperscript{1}Khoa Cơ học kỹ thuật và Tự động hóa,\\
+Trường Đại học Công nghệ -- Đại học Quốc gia Hà Nội\\
+144 Xuân Thủy, Cầu Giấy, Hà Nội, Việt Nam}
+\date{}
+
+\begin{document}
+\maketitle
+
+% =========================================================
+\begin{abstract}
+\noindent\textbf{Tóm tắt:}
+Nhiệm vụ bao phủ đa UAV trên GCS thực tế thường tách lập kế hoạch tĩnh trước khi bay với failsafe từng phương tiện; khi một UAV sự cố giữa nhiệm vụ, phần residual thường bị bỏ sót hoặc được phân công lại thủ công và dễ xung đột. Khác với phân vùng serpentine offline trước chuyến bay, bài báo đề xuất lớp phục hồi \emph{mid-mission} tập trung: phát hiện sự cố, gộp residual toàn đội, remap bằng chia nhóm kinh độ và đường lawnmower/serpentine mới, rồi tách độ cao/thời gian khởi động (CAA) trước khi xuất \texttt{.plan} mid-air chuẩn QGroundControl/PX4. Kiểm chứng động học điểm trên mission thực tế cho thấy, so với không replan, remap tăng $\eta$ ($93{,}9\% \rightarrow 97{,}5\%$) và giảm mạnh $\Tfin/\Lmax$; so với remap không CAA, lớp đề xuất loại $\Nc$ dự báo ($1 \rightarrow 0$) với chi phí thời gian chỉ khoảng vài giây. Kết quả mang tính logic/động học điểm, chưa thay thế đánh giá PX4 SITL hay bay thực địa.
+
+\medskip
+\noindent\textbf{Từ khóa:}
+hệ thống đa UAV; điều phối chịu lỗi; lập kế hoạch trực tuyến; bao phủ khu vực; serpentine; tránh va chạm; MAVLink; tìm kiếm cứu nạn.
+\end{abstract}
+
+% =========================================================
+\section{Giới thiệu}
+
+Đội hình nhiều UAV ngày càng được sử dụng cho nhiệm vụ bao phủ trong tìm kiếm cứu nạn, đánh giá thiên tai và giám sát môi trường. Vận hành song song giúp rút ngắn thời gian hoàn thành và tăng khả năng chịu lỗi ở mức hệ thống. Tuy nhiên, một hoặc nhiều UAV có thể rời đội hình trước khi kết thúc nhiệm vụ do mất liên lạc, kích hoạt chế độ an toàn của bộ điều khiển bay, hoặc năng lượng còn lại không đủ để tiếp tục bao phủ.
+
+Hầu hết quy trình GCS hiện nay vẫn dựa trên phân công tĩnh trước khi bay: mỗi UAV nhận một vùng và một chuỗi waypoint cố định. Khi một phương tiện sự cố, hai hệ quả không mong muốn thường xuất hiện. Thứ nhất, phần việc còn lại của UAV hỏng bị bỏ trống nếu không có can thiệp. Thứ hai, việc phân công lại khẩn cấp dễ tạo quỹ đạo giao cắt hoặc thời điểm đến gần nhau, làm tăng rủi ro va chạm.
+
+Bài báo tập trung vào phục hồi trực tuyến sau sự cố, không nhằm thay thế thuật toán phân vùng offline trước khi cất cánh (ví dụ~\cite{Nam2025ICEMA}). Các đóng góp chính gồm:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item Mô hình sự cố và logic phát hiện cho nhiệm vụ bao phủ đa UAV, phân biệt sự cố giữa nhiệm vụ với RTL bình thường sau khi hoàn thành nhiệm vụ.
+  \item Chiến lược remap residual runtime: gộp residual của UAV hỏng và các UAV sống, chia theo kinh độ, sinh lawnmower/serpentine mới (lọc centroid chỉ khi $|P| < |\Ua|$).
+  \item Lớp CAA nhẹ theo pin (tách độ cao + lệch $\tau$), không dịch ngang hình học bao phủ sau remap.
+  \item Triển khai đầu cuối trên GCS MAVLink/PX4: xuất \texttt{.plan} mid-air, pause/RTL, nạp và khởi động lại có lịch $\tau$.
+\end{enumerate}
+Đóng góp không nằm ở việc cải tiến phân vùng offline kiểu~\cite{Nam2025ICEMA}, mà ở vòng phục hồi khi lực lượng đội bay giảm giữa nhiệm vụ.
+
+% =========================================================
+\section{Cơ sở lý thuyết và nghiên cứu liên quan}
+
+Phần này sắp xếp tài liệu theo sáu nhóm nội dung gắn trực tiếp với bài toán phục hồi quỹ đạo đa UAV khi sự cố.
+
+\paragraph{Nhóm A -- Lập đường bay bao phủ (CPP) và bao phủ đa UAV.}
+Bài toán CPP đã được khảo sát rộng cho robot nói chung~\cite{Galceran2013} và cho UAV nói riêng~\cite{Cabreira2019,Fevgas2022}. Các hướng cổ điển dùng phân tách tế bào và quỹ đạo lawnmower/boustrophedon~\cite{Choset2001}. Với đa UAV, các công trình tiêu biểu phân tách đa giác rồi gán mỗi phần cho một phương tiện~\cite{Maza2007,Avellar2015}, hoặc tối ưu tuyến bao phủ có nhận thức năng lượng~\cite{DiFranco2015}. Công trình~\cite{Nam2025ICEMA} đề xuất phân vùng theo cạnh dài và định tuyến serpentine ở giai đoạn \emph{offline trước khi bay}. Bài này cùng miền bao phủ đa UAV nhưng giải bài toán khác: khi $|\Uset|$ giảm giữa nhiệm vụ, residual được remap bằng mapper serpentine đơn giản trên GCS; bài báo \textbf{không} tái hiện hay ``cải tiến'' thuật toán cạnh dài của~\cite{Nam2025ICEMA}.
+
+\paragraph{Nhóm B -- Phân bổ nhiệm vụ đa robot/đa UAV.}
+Phân loại bài toán phân bổ nhiệm vụ đa robot (MRTA) được hệ thống hóa trong~\cite{Gerkey2004}. Các cơ chế theo thị trường (auction/market-based) là hướng phổ biến để phân công động~\cite{Dias2006}. Thuật toán CBBA và các biến thể đồng thuận--đấu giá cho phép phân bổ phi tập trung, bền vững với bất đồng nhận thức tình huống~\cite{Choi2009,Brunet2008}. Các lược đồ phân bổ phân tán trong ngữ cảnh đa UAV cũng đã được khảo sát sớm~\cite{Lemaire2004}.
+
+\paragraph{Nhóm C -- Chịu lỗi và tái phân công khi mất phương tiện.}
+Kiến trúc chịu lỗi cổ điển như ALLIANCE minh họa khả năng robot còn lại tiếp nhận nhiệm vụ khi thành viên khác suy giảm~\cite{Parker1998}. Gần đây, các khung market-based / consensus được mở rộng cho tái lập kế hoạch khi UAV hỏng trong tìm kiếm cứu nạn hoặc đội hình suy giảm~\cite{Barnawi2025,Zeng2026,Giacomossi2026}. Điểm chung là phát hiện mất tác nhân rồi giải phóng/phân bổ lại phần việc còn lại; khác biệt của bài này nằm ở remap serpentine tập trung trên GCS kèm lớp CAA độ cao/thời gian cho mission mid-air chuẩn QGC/PX4.
+
+\paragraph{Nhóm D -- Tránh va chạm đa phương tiện.}
+Velocity Obstacles~\cite{Fiorini1998} và Reciprocal/Optimal Reciprocal Collision Avoidance~\cite{vandenBerg2008,vandenBerg2011} là nền tảng hình học cho tránh va chạm cục bộ. Với UAV, nhiều công trình kết hợp tách mặt phẳng ngang với kiểm soát/tách độ cao~\cite{Ferrera2018,Huang2019}. Bài báo kế thừa tư duy tách không--thời gian nhưng áp dụng ở lớp khởi động lại nhiệm vụ (phân tầng độ cao + lệch delay), thay vì điều khiển vận tốc thời gian thực trên từng UAV.
+
+\paragraph{Nhóm E -- Mạng UAV, ứng dụng dân sự và cứu nạn.}
+Khảo sát mạng UAV dân sự nhấn mạnh mất liên lạc và ràng buộc năng lượng~\cite{Hayat2016}. Các tổng quan ứng dụng dân sự và thách thức then chốt (pin, va chạm, swarming) được trình bày trong~\cite{Shakhatreh2019}. Vai trò UAV trong quản lý thiên tai và SAR được phân tích trong~\cite{Erdelj2017,Erdelj2016}. Các bài toán lập đường bay đa vùng ưu tiên cứu hộ cũng ngày càng được quan tâm~\cite{Du2023}.
+
+\paragraph{Nhóm F -- Nền tảng hệ thống bay và GCS.}
+Hệ sinh thái PX4/MAVLink và API điều nhiệm vụ/telemetry là hạ tầng thực thi phổ biến cho GCS thực nghiệm~\cite{Meier2015,MAVSDK}. Tài liệu failsafe/return mode của PX4~\cite{PX4Failsafe} cho thấy failsafe bảo vệ từng phương tiện đơn lẻ, nhưng không tự sửa tính liên tục bao phủ ở cấp đội bay---khoảng trống mà vòng điều phối lại đề xuất hướng tới lấp đầy.
+
+Tóm lại, GCS thực tế thường tách lập kế hoạch offline với xử lý failsafe runtime. Bài báo nối phát hiện sự cố, remap residual bằng serpentine và khởi động lại nhiệm vụ đã giải xung đột trong cùng một vòng trực tuyến tập trung.
+
+% =========================================================
+\section{Mô hình hệ thống và phát biểu bài toán}
+
+\subsection{Mô hình đội bay và nhiệm vụ}
+
+Xét đội bay $\Uset = \{u_{1},\ldots,u_{N}\}$ thực hiện nhiệm vụ bao phủ dưới trạm điều khiển tập trung. Mỗi UAV $u_{i}$ tại thời điểm $t$ có vị trí $p_{i}(t)=(\varphi_{i},\lambda_{i})$, độ cao tương đối $h_{i}(t)$, phần trăm pin còn lại $b_{i}(t)\in[0,100]$, trạng thái liên lạc $\ell_{i}(t)\in\{0,1\}$, và danh sách waypoint có thứ tự $\pi_{i}=(w_{i,1},\ldots,w_{i,n_{i}})$.
+
+Gọi $k_{i}(t)$ là chỉ số waypoint chưa hoàn thành gần nhất ước lượng từ $p_{i}(t)$. Tập waypoint còn lại của UAV $i$ là:
+\begin{equation}
+  R_{i}(t)=\{w_{i,k_{i}(t)},\ldots,w_{i,n_{i}}\}.
+\end{equation}
+Khi sự cố xảy ra, tập residual toàn cục được định nghĩa:
+\begin{equation}
+  \Premain(t_{f})=R_{f}(t_{f})\cup\Bigl(\bigcup_{u_{j}\in\Ua} R_{j}(t_{f})\Bigr).
+\end{equation}
+
+\subsection{Sự kiện sự cố}
+
+UAV $u_{f}$ được tuyên bố sự cố tại $t_{f}$ nếu thỏa một trong các điều kiện sau trong lúc vẫn đang mang nhiệm vụ bao phủ chưa xong:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Mất liên lạc / mất điều khiển (proxy):} không nhận telemetry hợp lệ quá $\Tlost$, trong khi UAV đang in-mission hoặc đang bay ($h_{i}>1\,\mathrm{m}$);
+  \item \textbf{Sự cố năng lượng:} $b_{f}(t_{f})\le\bmin$;
+  \item \textbf{Chế độ failsafe:} mode thuộc $\{\mathrm{RTL},\mathrm{LAND},\mathrm{FAILSAFE},\mathrm{RETURN}\}$ khi nhiệm vụ còn dở.
+\end{enumerate}
+RTL bình thường sau khi hoàn thành nhiệm vụ được loại trừ nhờ yêu cầu cờ in-mission còn hiệu lực đối với sự cố pin và mode. Mỗi UAV chỉ bị latch sự cố một lần để tránh kích hoạt lặp.
+
+\subsection{Mục tiêu điều phối lại}
+
+Đặt $\Ua=\Uset\setminus\{u_{f}\}$ là tập UAV còn hoạt động (có GPS hợp lệ). GCS cần tính các kế hoạch mới $\{\pi'_{j}\}$ bao phủ $\Premain$ và thỏa ràng buộc an toàn. Hàm mục tiêu đa tiêu chí dùng để đánh giá (không phải bộ tối ưu online):
+\begin{equation}
+  J=\omega_{1}\Tfin+\omega_{2}\Lmax+\omega_{3}C_{\mathrm{risk}},
+\end{equation}
+trong đó $\Tfin$ là thời gian hoàn thành dự kiến sau remap,
+\begin{equation}
+  \Lmax=\max_{u_{j}\in\Ua}\mathrm{Length}(\pi'_{j})
+\end{equation}
+phản ánh mất cân bằng tải, và $C_{\mathrm{risk}}$ là số xung đột cặp đôi dự báo theo tốc độ danh định. Ràng buộc an toàn yêu cầu:
+\begin{equation}
+  \bigl\|\hat{p}_{i}(t)-\hat{p}_{j}(t)\bigr\|\ge\dsaf,
+  \qquad\forall\,i\neq j,\;\forall\,t\in[t_{f},\Tfin],
+\end{equation}
+có thể tăng cường bằng tách độ cao $|h_{i}-h_{j}|\ge\Delta h_{\mathrm{clear}}$ với $\Delta h_{\mathrm{clear}}=\Dh-1$ (mặc định $4\,\mathrm{m}$ khi $\Dh=5\,\mathrm{m}$).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig1_pipeline.png}
+  \caption{Quy trình điều phối lại quỹ đạo đa UAV theo sự kiện sự cố (serpentine remap).}
+  \label{fig:pipeline}
+\end{figure}
+
+% =========================================================
+\section{Phương pháp đề xuất}
+
+Quy trình đề xuất gồm năm giai đoạn thực thi tại GCS.
+
+\subsection{Giám sát runtime và phát hiện sự cố}
+
+Mỗi kênh telemetry cập nhật vector trạng thái sống $s_{i}=(p_{i},h_{i},b_{i},\mathrm{mode}_{i},t^{\mathrm{last}}_{i},\mathrm{inMission}_{i})$. Việc phát hiện chạy định kỳ với chu kỳ $\Delta t\approx 1\,\mathrm{s}$.
+
+\begin{algorithm}[htbp]
+\caption{Phát hiện sự cố}
+\label{alg:detect}
+\begin{algorithmic}[1]
+\Require trạng thái sống $\{s_{i}\}$, ngưỡng $\Tlost$, $\bmin$
+\Ensure tập $F$ các chỉ số UAV mới sự cố
+\State $F\leftarrow\emptyset$
+\For{mỗi UAV $i$ được giám sát}
+  \If{$s_{i}.\mathrm{failed}=\mathrm{true}$}
+    \State \textbf{continue}
+  \EndIf
+  \State $\mathrm{lost}\leftarrow(\mathrm{now}-s_{i}.t_{\mathrm{last}}>\Tlost)$
+  \State $\mathrm{lowBatt}\leftarrow(s_{i}.b\le\bmin)$
+  \State $\mathrm{failsafe}\leftarrow(\mathrm{mode}_{i}\in\{\mathrm{RTL},\mathrm{LAND},\mathrm{FAILSAFE},\mathrm{RETURN}\})$
+  \State $\mathrm{lostFail}\leftarrow\mathrm{lost}\land(\mathrm{inMission}_{i}\lor h_{i}>1)$
+  \State $\mathrm{energyModeFail}\leftarrow\mathrm{inMission}_{i}\land(\mathrm{lowBatt}\lor\mathrm{failsafe})$
+  \If{$\mathrm{lostFail}\lor\mathrm{energyModeFail}$}
+    \State đánh dấu $i$ failed;\; $F\leftarrow F\cup\{i\}$
+  \EndIf
+\EndFor
+\State \Return $F$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Ước lượng residual toàn cục}
+
+Waypoint còn lại của mỗi UAV được lấy từ tệp \texttt{.plan} đang dùng và vị trí GNSS hiện tại (chỉ số waypoint gần nhất). Cách này giảm phụ thuộc vào một luồng mission-progress đơn lẻ. Tập $\Premain$ được tạo bằng cách gộp residual của UAV sự cố và mọi UAV còn sống, rồi khử trùng gần theo cửa sổ cục bộ: mỗi điểm mới chỉ được giữ nếu cách mọi điểm trong $12$ điểm vừa thêm hơn $1\,\mathrm{m}$ (tránh $O(K^{2})$ trên residual dày).
+
+\subsection{Remap vùng còn lại bằng chia nhóm kinh độ và serpentine}
+
+Đây là khác biệt chính so với chỉ ``chia lại danh sách waypoint cũ''. Quy trình remap gồm:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item Ước lượng khoảng cách làn $\delta$ từ median khoảng cách lân cận của $\Premain$ (kẹp trong $[5,40]\,\mathrm{m}$), rồi tăng $\delta$ nếu dự báo số waypoint vượt ngân sách nạp mission (khoảng $250$ điểm/UAV);
+  \item Đặt $M'=\min(|\Ua|,|\Premain|)$. Nếu $|\Ua|>|\Premain|$ thì chỉ giữ $M'$ UAV gần $\mathrm{centroid}(\Premain)$ nhất (tránh dải rỗng); ngược lại dùng toàn bộ $\Ua$ có GPS hợp lệ;
+  \item Sắp xếp $\Premain$ theo kinh độ và cắt thành $M'$ nhóm cân bằng về số điểm;
+  \item Với mỗi nhóm, lập bounding box, đệm $\mathrm{pad}=\max(0{,}5;\,0{,}1\cdot\delta)$ mét, rồi sinh đường lawnmower/serpentine với bước $\delta$; điểm bắt đầu ưu tiên gần $p_{j}(t_{f})$;
+  \item Gán dải theo thứ tự tây $\rightarrow$ đông cho các UAV đã chọn, sắp theo kinh độ hiện tại.
+\end{enumerate}
+\begin{equation}
+  \pi'_{j}=\mathrm{Serpentine}\bigl(\mathrm{Pad}(\mathrm{BBox}(G_{j})),\delta,p_{j}(t_{f})\bigr).
+\end{equation}
+
+\begin{algorithm}[htbp]
+\caption{Serpentine remap residual}
+\label{alg:remap}
+\begin{algorithmic}[1]
+\Require chỉ số sự cố $f$, tập sống $\Ua$ (có GPS), residual $\{R_{i}\}$, khoảng $\delta$
+\Ensure các quỹ đạo $\{\pi'_{j}\}$
+\State $P\leftarrow\mathrm{UniqueWindow}\bigl(R_{f}\cup(\cup_{j\in\Ua}R_{j}),\,\mathrm{cửa\,sổ}{=}12,\,\mathrm{ngưỡng}{=}1\,\mathrm{m}\bigr)$
+\If{$|P|<2$}
+  \State \Return $\emptyset$
+\EndIf
+\State $M'\leftarrow\min(|\Ua|,|P|)$;\;
+       $\delta\leftarrow\mathrm{AdaptSpacing}(\mathrm{EstimateSpacing}(P),M',\,\mathrm{ngân\,sách}{\approx}250\,\mathrm{WP/UAV})$
+\State $U'\leftarrow\Ua$
+\If{$|\Ua|>|P|$}
+  \State $U'\leftarrow M'$ UAV gần $\mathrm{centroid}(P)$ nhất
+\EndIf
+\State sắp $U'$ theo kinh độ tăng dần (Tây$\rightarrow$Đông)
+\State $\{G_{1},\ldots,G_{M'}\}\leftarrow\mathrm{SplitByLongitude}(P,M')$
+\For{$k=1..M'$}
+  \State $\pi'_{U'[k]}\leftarrow\mathrm{SerpentineInBBox}\bigl(\mathrm{Pad}(\mathrm{BBox}(G_{k}),\mathrm{pad}{=}\max(0.5,0.1\delta)),\delta,\mathrm{start}{=}p_{U'[k]}\bigr)$
+\EndFor
+\State \Return $\{\pi'_{j}\}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Tránh va chạm bằng tách độ cao và lệch thời gian}
+
+Sau khi sinh serpentine, các quỹ đạo có thể chồng lấn không--thời gian, đặc biệt trên đoạn chuyển tiếp. Lớp giải xung đột ưu tiên:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Phân tầng độ cao:} $h'_{j}=h^{0}_{j}+\mathrm{rank}(j)\cdot\Dh$. Xếp hạng theo pin giảm dần: pin cao hơn $\rightarrow$ rank nhỏ hơn $\rightarrow$ băng thấp hơn và $\tau$ nhỏ hơn (ưu tiên hoàn thành sớm trong mô hình dự báo). Độ cao nền $h^{0}_{j}$ lấy từ \texttt{alt\_rel} hiện tại nếu $\ge 5\,\mathrm{m}$, ngược lại dùng $10\,\mathrm{m}$;
+  \item \textbf{Lệch thời gian khởi động:} $\tau_{j}=\mathrm{rank}(j)\cdot\tauzero$; nếu vẫn còn xung đột dự báo thì tăng thêm $\tau_{j}\mathrel{+}=1+\mathrm{rank}(j)$, lặp tối đa $4$ vòng.
+\end{enumerate}
+Vị trí dự báo $\hat{p}_{j}(t)$ nội suy theo polyline với tốc độ danh định $v\approx 2\,\mathrm{m/s}$. Một xung đột được đếm khi hai UAV có $|h'_{i}-h'_{j}|<(\Dh-1)$ và đi vào quả cầu bán kính $\dsaf$ trong cùng mẫu thời gian ($\Delta t_{\mathrm{sample}}=1\,\mathrm{s}$). Với $\Dh=5\,\mathrm{m}$, ngưỡng bỏ qua kiểm tra ngang là $4\,\mathrm{m}$---đủ để các băng độ cao danh định không bị đếm xung đột. Hình học serpentine đã sinh không bị dịch ngang thêm ở bước này.
+
+\begin{algorithm}[htbp]
+\caption{Giải xung đột}
+\label{alg:caa}
+\begin{algorithmic}[1]
+\Require $\{\pi'_{j}\}$, độ cao nền $h^{0}$, tốc độ $v$, $\dsaf$, $\Dh$, $\tauzero$
+\Ensure $\{h'_{j}\}$, $\{\tau_{j}\}$
+\State xếp hạng UAV theo pin còn lại (giảm dần)
+\State $\mathrm{clearance}\leftarrow\max(1,\Dh-1)$
+\For{mỗi UAV $j$}
+  \State $h'_{j}\leftarrow h^{0}_{j}+\mathrm{rank}(j)\cdot\Dh$
+  \State $\tau_{j}\leftarrow\mathrm{rank}(j)\cdot\tauzero$
+\EndFor
+\For{$\mathrm{iter}=1..4$}
+  \If{$\mathrm{CountConflicts}(\ldots,\mathrm{clearance})=0$}
+    \State \textbf{break}
+  \EndIf
+  \For{mỗi UAV $j$}
+    \State $\tau_{j}\leftarrow\tau_{j}+(1+\mathrm{rank}(j))$
+  \EndFor
+\EndFor
+\State \Return $\{h'_{j}\}$, $\{\tau_{j}\}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Tái sinh nhiệm vụ và khởi động lại}
+
+Các quỹ đạo đã giải xung đột được xuất ra tệp plan chuẩn QGroundControl (\texttt{replan\_points\{i\}.plan}) và ghi đè \texttt{points\{i\}.plan} sau khi sao lưu bản gốc lần đầu vào \texttt{mission/backup\_before\_replan/}. Với khởi động lại khi đang bay, mọi mục dẫn đường dùng lệnh waypoint (MAV\_CMD~$16$), không dùng takeoff ($22$), rồi kết thúc bằng RTL ($20$).
+
+Trình tự runtime trên GCS: tạm dừng mọi UAV helper còn liên lạc $\rightarrow$ RTL UAV sự cố nếu còn link $\rightarrow$ nạp/khởi động các UAV nhận dải mới theo lịch tuyệt đối $t^{\mathrm{start}}_{j}=t_{0}+\tau_{j}$ $\rightarrow$ các UAV không nhận dải mới (nếu có, ví dụ khi $|P|<|\Ua|$) được resume mission cũ, không gán strip mới.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig2_sequence.png}
+  \caption{Trình tự runtime từ phát hiện sự cố đến khởi động lại nhiệm vụ.}
+  \label{fig:sequence}
+\end{figure}
+
+% =========================================================
+\section{Phân tích độ phức tạp}
+
+Gọi $M$ là số UAV còn sống được gán dải, $K=|\Premain|$, $T$ số mẫu thời gian dự báo xung đột, và $L$ số waypoint serpentine trung bình mỗi dải. Quét sự cố $O(N)$/chu kỳ. Ước lượng spacing $O(K^{2})$ trên mẫu giới hạn. Chia theo kinh độ $O(K\log K)$. Sinh serpentine $O(M\cdot L)$. Kiểm tra xung đột cặp đôi $O(M^{2}T)$. Với đội bay nhỏ ($N\le 6$) và vài trăm waypoint, vòng phục hồi phù hợp vận hành tương tác trên GCS.
+
+\begin{table}[htbp]
+\centering
+\caption{Tham số runtime mặc định (khớp \texttt{ReplanConfig} trong mã nguồn).}
+\label{tab:params}
+\begin{tabular}{@{}llp{5.2cm}@{}}
+\toprule
+\textbf{Tham số} & \textbf{Ký hiệu} & \textbf{Mặc định / Vai trò} \\
+\midrule
+Ngưỡng mất liên lạc & $\Tlost$ & $3\,\mathrm{s}$ --- proxy mất ĐK/liên lạc \\
+Ngưỡng pin & $\bmin$ & $25\%$ --- sự cố năng lượng \\
+Khoảng cách an toàn ngang & $\dsaf$ & $15\,\mathrm{m}$ --- ngưỡng xung đột \\
+Bước tách độ cao & $\Dh$ & $5\,\mathrm{m}$ --- băng theo rank pin \\
+Ngưỡng bỏ qua xung đột đứng & $\Dh-1$ & $4\,\mathrm{m}$ --- không đếm $\Nc$ \\
+Bước lệch thời gian & $\tauzero$ & $2\,\mathrm{s}$ --- $\tau_{j}=\mathrm{rank}\cdot\tauzero$ \\
+Số vòng tăng delay CAA & --- & $4$ --- mỗi vòng: $\tau_{j}\mathrel{+}=1+\mathrm{rank}$ \\
+Tốc độ danh định dự báo & $v$ & $2\,\mathrm{m/s}$ --- nội suy CountConflicts \\
+Khoảng làn serpentine & $\delta$ & tự ước lượng (kẹp $5$--$40\,\mathrm{m}$) \\
+Ngân sách WP/UAV & --- & ${\sim}250$ --- tăng $\delta$ nếu vượt \\
+Chu kỳ giám sát & $\Delta t$ & $1\,\mathrm{s}$ --- vòng detect \\
+Tập giám sát & --- & UAV $1$--$5$ (\texttt{monitor\_indices}) \\
+Cooldown tái điều phối & --- & $15\,\mathrm{s}$ --- tránh kích hoạt dồn \\
+Auto-replan mặc định & --- & OFF --- bật bằng UI / Force Replan \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================================================
+\section{Thiết kế thực nghiệm và đánh giá}
+
+\subsection{Thiết lập triển khai}
+
+Phương pháp được hiện thực thành module \texttt{replan\_coordinator} tích hợp trong GCS đa UAV (Python/PyQt5, MAVSDK/qasync, QGroundControl \texttt{.plan}). Tập giám sát mặc định là UAV~$1$--$5$; Auto-replan mặc định tắt và có thể bật từ UI (Auto-Replan / Force Replan / Sim Fail UAV1). Harness offline \texttt{simulate\_replan\_experiments.py} chạy so sánh B0/B1/Proposed và xuất CSV chỉ số Bảng~\ref{tab:results}. Các kiểm thử tự động đã xác nhận: phát hiện sự cố, ước lượng residual, chia nhóm kinh độ, sinh serpentine, tách độ cao/delay, xuất tệp mid-air (cmd~$16$ + RTL~$20$), và backup trước khi ghi đè.
+
+\subsection{Các kịch bản và chiến lược so sánh}
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{S1:} mất liên lạc giữa nhiệm vụ ($\Treact$ gồm $\Tlost$).
+  \item \textbf{S2:} sự cố pin/mode failsafe trong lúc còn in-mission (cùng tiến độ residual với S1; khác chủ yếu ở $\Treact$).
+  \item \textbf{S3:} fail sớm hơn $\rightarrow$ residual dày hơn, nhấn rủi ro xung đột khi khởi động lại không CAA.
+\end{itemize}
+Các chiến lược:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{B0:} không tái điều phối (UAV sống giữ residual cũ; phần UAV hỏng bỏ trống);
+  \item \textbf{B1:} remap serpentine, không tách độ cao/thời gian;
+  \item \textbf{Proposed:} Thuật toán~\ref{alg:detect}--\ref{alg:caa} (remap + CAA).
+\end{itemize}
+S1 và S2 dùng chung hình học residual để tách ảnh hưởng loại sự cố lên $\Treact$; các chỉ số $\eta$, $\Tfin$, $\Lmax$, $\Nc$ của hai kịch bản này trùng nhau như kỳ vọng. S3 không đưa B0 vì mục tiêu chính là so B1--Proposed khi residual dày.
+
+\subsection{Chỉ tiêu đánh giá}
+
+Các chỉ số được đo trên mô hình động học điểm (polyline, tốc độ danh định $v$), không phải footprint cảm biến thật:
+\begin{equation}
+  \eta=\frac{\bigl|\{p\in\Premain:\exists\,\mathrm{WP}\text{ trên }\cup\pi'\text{ cách }p\le r_{\mathrm{cov}}\}\bigr|}{|\Premain|},
+\end{equation}
+với $r_{\mathrm{cov}}\approx 0{,}6\cdot\delta$ (kẹp tối thiểu $8\,\mathrm{m}$). Như vậy $\eta$ là proxy bao phủ residual theo waypoint, không phải diện tích quét cảm biến.
+\begin{equation}
+  \Tfin=\max_{j}\bigl(\tau_{j}+\mathrm{Length}(\pi'_{j})/v\bigr),\qquad
+  \Lmax=\max_{j}\mathrm{Length}(\pi'_{j}).
+\end{equation}
+$\Nc$ $=$ số cặp xung đột dự báo theo CountConflicts ($\dsaf$, $\mathrm{clearance}=\Dh-1$, $\Delta t_{\mathrm{sample}}=1\,\mathrm{s}$). $\Treact(\mathrm{S1})=\Tlost+t_{\mathrm{compute}}$; với S2/S3, $\Treact\approx t_{\mathrm{compute}}$ (độ trễ quyết định, chưa gồm độ trễ liên lạc/điều khiển thực địa).
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh định tính (đối chiếu định lượng ở Bảng~\ref{tab:results}).}
+\label{tab:qual}
+\small
+\begin{tabular}{@{}p{2.6cm}p{3.2cm}p{3.2cm}p{3.2cm}@{}}
+\toprule
+\textbf{Tiêu chí} & \textbf{B0 Không replan} & \textbf{B1 Remap không CAA} & \textbf{Đề xuất} \\
+\midrule
+Bao phủ residual & Thiếu phần UAV hỏng ($\eta$ thấp hơn) & Đường serpentine mới ($\eta$ cao hơn) & Cùng hình học remap với B1 \\
+Tải / $\Tfin$ & $\Lmax$, $\Tfin$ cao hơn & Giảm nhờ chia lại residual & Gần B1; $+\tau$ do CAA \\
+Xung đột restart & Thấp (ít đổi quỹ đạo) & Có thể $>0$ nếu đồng mức & $\Nc\rightarrow 0$ nhờ tách cao/thời gian \\
+Can thiệp vận hành & Cần phân công thủ công & Tự remap, chưa tách an toàn & Tự remap + CAA trên GCS \\
+\midrule
+\multicolumn{4}{@{}p{\dimexpr\linewidth-2\tabcolsep\relax}@{}}{%
+Phạm vi khẳng định: offline kinematic / logic mission; chưa chứng minh an toàn bay tuyệt đối.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Kết quả mô phỏng động học điểm offline (\texttt{mission/points1..4.plan}, tiến độ fail ${\approx}\,40\%$; $v=2\,\mathrm{m/s}$). Chưa phải PX4 SITL/bay thật.}
+\label{tab:results}
+\small
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+\textbf{Kịch bản} & \textbf{Chiến lược} & $\eta$ (\%) & $\Tfin$ (s) & $\Lmax$ (m) & $\Nc$ & $\Treact$ (s) \\
+\midrule
+S1 & B0       & 93,9 & 1710,5 & 3421,1 & 0 & 3,01 \\
+S1 & B1       & 97,5 & 1052,0 & 2104,0 & 1 & 3,04 \\
+S1 & Đề xuất  & 97,5 & 1056,0 & 2104,0 & 0 & 3,02 \\
+S2 & B0       & 93,9 & 1710,5 & 3421,1 & 0 & 0,01 \\
+S2 & B1       & 97,5 & 1052,0 & 2104,0 & 1 & 0,04 \\
+S2 & Đề xuất  & 97,5 & 1056,0 & 2104,0 & 0 & 0,02 \\
+S3 & B1       & 100,0 & 1313,2 & 2626,5 & 1 & 0,05 \\
+S3 & Đề xuất  & 100,0 & 1317,2 & 2626,5 & 0 & 0,03 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Kiểm chứng logic trên tệp mission thực tế (offline, không SITL).}
+\label{tab:logic}
+\small
+\begin{tabular}{@{}p{4.2cm}p{9.5cm}@{}}
+\toprule
+\textbf{Hạng mục} & \textbf{Kết quả quan sát} \\
+\midrule
+Input & \texttt{mission/points1..4.plan} ($17/16/16/270$ WP) \\
+Giả lập tiến độ & Mỗi UAV tại ${\sim}40\%$ chuỗi WP (residual ${\approx}\,12/11/11/163$) \\
+Sự cố giả lập & UAV1 fail; alive $=\{2,3,4\}$ \\
+Pool residual & $197$ điểm sau gộp/khử trùng cửa sổ \\
+Spacing tự ước lượng & $18{,}2\,\mathrm{m}$ (không cần tăng thêm ngân sách) \\
+Số WP sau remap & $32/98/117$ (tổng $247$) cho UAV $2/3/4$ \\
+Độ cao / delay sau CAA & $h'=12/17/22\,\mathrm{m}$; $\tau=0/2/4\,\mathrm{s}$ (theo rank pin) \\
+$\Nc$ trước $\rightarrow$ sau CAA & $1\rightarrow 0$ \\
+Lệnh mid-air & Chỉ waypoint $16$ + RTL $20$; không có takeoff $22$ \\
+Fail nối tiếp UAV2 & Remap lại cho $\{3,4\}$ thành công ($\Nc$: $1\rightarrow 0$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Thảo luận}
+
+\paragraph{Tầng 1 -- Lợi ích của remap (Proposed/B1 so với B0).}
+
+Trên S1/S2, không replan để lại residual UAV hỏng nên $\eta$ chỉ đạt $93{,}9\%$, đồng thời $\Lmax=3421\,\mathrm{m}$ và $\Tfin\approx 1710\,\mathrm{s}$ phản ánh tải lệch trên các dải cũ. Remap residual đưa $\eta$ lên $97{,}5\%$ và giảm $\Lmax$ xuống $2104\,\mathrm{m}$ ($\Tfin\approx 1052$--$1056\,\mathrm{s}$): lợi ích chính là phục hồi bao phủ và cân bằng tải, không phải ``tối ưu toàn cục''~$J$.
+
+\paragraph{Tầng 2 -- Lợi ích của CAA (Proposed so với B1).}
+
+Hình học serpentine của B1 và Proposed giống nhau ($\eta$ và $\Lmax$ trùng), nhưng B1 còn $\Nc=1$ khi các dải đồng mức khởi động gần nhau. Proposed đưa $\Nc\rightarrow 0$ nhờ băng độ cao và $\tau$; chi phí là $\Delta\Tfin\approx 4\,\mathrm{s}$ (đúng bậc $\tau_{\max}=2\cdot\tauzero$). Trên S3 residual dày hơn, cùng mô típ: CAA loại xung đột dự báo với chi phí thời gian nhỏ, không đổi $\Lmax$.
+
+\paragraph{Tầng 3 -- $\Treact$.}
+
+S1 bị chặn dưới bởi $\Tlost=3\,\mathrm{s}$; S2/S3 chủ yếu phản ánh $t_{\mathrm{compute}}$ (cỡ $10$--$50\,\mathrm{ms}$ trên máy thử). Không suy diễn $\Treact$ nhỏ thành độ trễ end-to-end thực địa.
+
+Bảng~\ref{tab:logic} củng cố tính đúng pipeline (pool, spacing, lệnh mid-air $16{+}20$, fail nối tiếp). Toàn bộ Bảng~\ref{tab:results}--\ref{tab:logic} là kiểm chứng logic/động học điểm trên một bộ mission; \textbf{chưa} thay thế PX4 SITL/bay thật.
+
+\paragraph{Ranh giới với~\cite{Nam2025ICEMA}.}
+
+ICEMA giải phân vùng/serpentine offline trước chuyến bay; bài này giải phục hồi khi đội hình thay đổi giữa nhiệm vụ bằng mapper residual runtime đơn giản hơn, kèm detect và CAA khởi động lại. Hai lớp bổ sung nhau, không thay thế nhau.
+
+% =========================================================
+\section{Hạn chế và đe dọa đối với tính hợp lệ}
+
+\paragraph{Construct validity.}
+Residual theo waypoint gần nhất và $\eta$ theo bán kính $r_{\mathrm{cov}}$ chỉ là proxy; chúng không đo footprint cảm biến hay tỉ lệ diện tích địa lý thật. Bounding box từng nhóm có thể bao cả khoảng trống giữa các cụm residual.
+
+\paragraph{Internal validity.}
+Bộ dự báo xung đột dùng polyline, $v$ cố định, chưa mô hình gió, động học chuyển tiếp và độ trễ lệnh/upload. CAA giảm $\Nc$ trong mô hình này; không chứng minh ``không va chạm'' trên không phận thực.
+
+\paragraph{External validity.}
+Thí nghiệm trên $N\le 4$ UAV và một bộ \texttt{mission/points1..4.plan}; GCS tập trung --- nếu trạm mất thì không bảo đảm phục hồi đội bay. Mapper runtime không tái sử dụng thuật toán cạnh dài của~\cite{Nam2025ICEMA}, nên không so ``chất lượng phân vùng offline''.
+
+% =========================================================
+\section{Kết luận}
+
+Bài báo đề xuất lớp điều phối lại quỹ đạo đa UAV theo sự kiện sự cố cho nhiệm vụ bao phủ trên GCS tập trung: detect $\rightarrow$ remap serpentine residual $\rightarrow$ CAA độ cao/thời gian $\rightarrow$ xuất mission mid-air MAVLink/PX4. Trên bộ mission thực tế (động học điểm), remap cải thiện $\eta$ từ $93{,}9\%$ lên $97{,}5\%$ và giảm mạnh $\Tfin/\Lmax$ so với không replan; lớp CAA loại xung đột dự báo ($\Nc$: $1\rightarrow 0$) với chi phí thời gian khoảng vài giây, không đổi hình học bao phủ. Khung này bổ sung cho lập kế hoạch offline (ví dụ~\cite{Nam2025ICEMA}), chứ không thay thế phân vùng trước chuyến bay. Hướng tiếp theo: lặp lại trên PX4 SITL/bay thật; đưa residual polygon/DEM vào remap; gán dải có nhận thức năng lượng; và nghiên cứu phục hồi khi liên lạc GCS suy giảm.
+
+\section*{Lời cảm ơn}
+Nghiên cứu liên quan định hướng ứng dụng trong đề tài cấp cơ sở mã số CN25.05 tại Trường Đại học Công nghệ -- ĐHQGHN.
+
+% =========================================================
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+\end{document}

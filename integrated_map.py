@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-from PyQt5.QtCore import QObject, QUrl, pyqtSlot
+from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineSettings
@@ -14,9 +14,93 @@ GPS_DIR = os.path.join(BASE_DIR, "gps")
 
 
 class MapBridge(QObject):
+    simulationCommand = pyqtSignal(str)
+
     def __init__(self, window):
         super().__init__()
         self.window = window
+        self._map_ready = False
+        self._simulation_queue = []
+
+    @pyqtSlot()
+    def notifyMapReady(self):
+        self._map_ready = True
+        queued = self._simulation_queue
+        self._simulation_queue = []
+        for command in queued:
+            self.simulationCommand.emit(command)
+
+    def _send_simulation_command(self, action, **payload):
+        command = json.dumps(
+            {"action": action, **payload}, ensure_ascii=True, separators=(",", ":")
+        )
+        if self._map_ready:
+            self.simulationCommand.emit(command)
+        else:
+            self._simulation_queue.append(command)
+
+    @staticmethod
+    def _normalize_routes(routes):
+        return {
+            str(drone_id): [[float(point[0]), float(point[1])] for point in route]
+            for drone_id, route in routes.items()
+        }
+
+    def setSimulationRoutes(self, routes, phase):
+        if phase not in ("initial", "flown", "failed", "replan"):
+            raise ValueError(f"Unknown simulation route phase: {phase}")
+        self._send_simulation_command(
+            "set_routes", routes=self._normalize_routes(routes), phase=phase
+        )
+
+    def setSimulationPositions(self, positions):
+        normalized = {}
+        for drone_id, value in positions.items():
+            if isinstance(value, dict):
+                point = value.get("position")
+                status = str(value.get("status", "FLYING"))
+                altitude = float(value.get("altitude_m", 0.0))
+            else:
+                point = value
+                status = "FLYING"
+                altitude = 0.0
+            if point is None:
+                continue
+            normalized[str(drone_id)] = {
+                "lat": float(point[0]),
+                "lng": float(point[1]),
+                "status": status,
+                "altitude_m": altitude,
+            }
+        self._send_simulation_command("set_positions", positions=normalized)
+
+    def markFailedDrone(self, drone_id, position):
+        self._send_simulation_command(
+            "mark_failed",
+            drone_id=int(drone_id),
+            position=[float(position[0]), float(position[1])],
+        )
+
+    def clearSimulation(self):
+        self._send_simulation_command("clear")
+
+    def showSimulationEvent(self, message):
+        self._send_simulation_command("show_event", message=str(message))
+
+    def fitSimulationBounds(self):
+        self._send_simulation_command("fit_bounds")
+
+    def showSimulationDemo(self):
+        """Draw a small deterministic overlay for manual bridge/map testing."""
+        routes = {
+            1: [(21.0609, 105.7920), (21.0615, 105.7924), (21.0620, 105.7920)],
+            2: [(21.0608, 105.7923), (21.0614, 105.7928), (21.0620, 105.7925)],
+        }
+        self.clearSimulation()
+        self.setSimulationRoutes(routes, "initial")
+        self.setSimulationPositions({1: routes[1][0], 2: routes[2][0]})
+        self.showSimulationEvent("Simulation map bridge ready")
+        self.fitSimulationBounds()
 
     @pyqtSlot(float, float)
     def setCoordinate(self, latitude, longitude):
@@ -545,6 +629,16 @@ def integrated_map_html():
       border-radius: 50%;
       z-index: 1;
     }
+    .sim-uav-label {
+      border: 1px solid #64748b;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #172033;
+      box-shadow: none;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 4px;
+    }
   </style>
 </head>
 <body>
@@ -602,7 +696,11 @@ def integrated_map_html():
     var bridge = null;
     new QWebChannel(qt.webChannelTransport, function(channel) {
       bridge = channel.objects.mapBridge;
-      refreshDronePositions(true);
+      bridge.simulationCommand.connect(handleSimulationCommand);
+      window.setTimeout(function() {
+        bridge.notifyMapReady();
+        refreshDronePositions(true);
+      }, 0);
     });
 
     var canvasRenderer = L.canvas({ padding: 0.35 });
@@ -646,6 +744,14 @@ def integrated_map_html():
     var gridPathLayers = [];
     var areaLayer = L.layerGroup().addTo(map);
     var gridPointLayer = L.layerGroup().addTo(map);
+    var simulationLayers = {
+      initial: L.layerGroup().addTo(map),
+      flown: L.layerGroup().addTo(map),
+      failed: L.layerGroup().addTo(map),
+      replan: L.layerGroup().addTo(map)
+    };
+    var simulationMarkers = {};
+    var simulationColors = ['#2563eb', '#16a34a', '#f59e0b', '#7c3aed', '#db2777', '#0891b2'];
     var gridVisible = false;
     var gridPathVisible = false;
     var statusBox = document.getElementById('mapStatus');
@@ -658,6 +764,141 @@ def integrated_map_html():
 
     function setStatus(text) {
       statusBox.textContent = text;
+    }
+
+    function simulationColor(droneId) {
+      var numericId = parseInt(droneId, 10);
+      var index = Number.isFinite(numericId) ? Math.max(0, numericId - 1) : 0;
+      return simulationColors[index % simulationColors.length];
+    }
+
+    function clearSimulation() {
+      Object.keys(simulationLayers).forEach(function(phase) {
+        simulationLayers[phase].clearLayers();
+      });
+      Object.keys(simulationMarkers).forEach(function(droneId) {
+        map.removeLayer(simulationMarkers[droneId]);
+      });
+      simulationMarkers = {};
+    }
+
+    function setSimulationRoutes(routes, phase) {
+      var layer = simulationLayers[phase];
+      if (!layer) {
+        throw new Error('Unknown simulation route phase: ' + phase);
+      }
+      layer.clearLayers();
+      Object.keys(routes || {}).forEach(function(droneId) {
+        var route = routes[droneId];
+        if (!Array.isArray(route) || route.length < 2) {
+          return;
+        }
+        var style = {
+          renderer: canvasRenderer,
+          color: simulationColor(droneId),
+          weight: phase === 'initial' ? 2 : 4,
+          opacity: phase === 'initial' ? 0.36 : 0.92,
+          interactive: false,
+          smoothFactor: 1.0
+        };
+        if (phase === 'initial') {
+          style.dashArray = '5 7';
+        } else if (phase === 'failed') {
+          style.color = '#dc2626';
+          style.dashArray = '8 7';
+          style.weight = 4;
+        } else if (phase === 'flown') {
+          style.weight = 5;
+        }
+        L.polyline(route, style).addTo(layer);
+      });
+    }
+
+    function setSimulationPositions(positions) {
+      Object.keys(positions || {}).forEach(function(droneId) {
+        var state = positions[droneId];
+        var point = [parseFloat(state.lat), parseFloat(state.lng)];
+        if (!Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
+          return;
+        }
+        var failed = String(state.status || '').toUpperCase() === 'FAILED';
+        var color = failed ? '#dc2626' : simulationColor(droneId);
+        var marker = simulationMarkers[droneId];
+        if (!marker) {
+          marker = L.circleMarker(point, {
+            renderer: canvasRenderer,
+            radius: 8,
+            color: '#ffffff',
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 1.0,
+            interactive: false
+          }).addTo(map);
+          marker.bindTooltip('UAV ' + droneId, {
+            permanent: true,
+            direction: 'top',
+            className: 'sim-uav-label',
+            offset: [0, -8]
+          });
+          simulationMarkers[droneId] = marker;
+        } else {
+          marker.setLatLng(point);
+          marker.setStyle({fillColor: color});
+        }
+      });
+    }
+
+    function markFailedDrone(droneId, position) {
+      var key = String(droneId);
+      var states = {};
+      states[key] = {
+        lat: position[0],
+        lng: position[1],
+        status: 'FAILED'
+      };
+      setSimulationPositions(states);
+      setStatus('UAV ' + droneId + ' failed. Replanning remaining coverage.');
+    }
+
+    function fitSimulationBounds() {
+      var points = [];
+      Object.keys(simulationLayers).forEach(function(phase) {
+        simulationLayers[phase].eachLayer(function(layer) {
+          if (layer.getLatLngs) {
+            layer.getLatLngs().forEach(function(point) { points.push(point); });
+          }
+        });
+      });
+      Object.keys(simulationMarkers).forEach(function(droneId) {
+        points.push(simulationMarkers[droneId].getLatLng());
+      });
+      if (points.length) {
+        map.fitBounds(L.latLngBounds(points), {padding: [24, 24], maxZoom: 18});
+      }
+    }
+
+    function handleSimulationCommand(commandJson) {
+      try {
+        var command = JSON.parse(commandJson);
+        if (command.action === 'set_routes') {
+          setSimulationRoutes(command.routes, command.phase);
+        } else if (command.action === 'set_positions') {
+          setSimulationPositions(command.positions);
+        } else if (command.action === 'mark_failed') {
+          markFailedDrone(command.drone_id, command.position);
+        } else if (command.action === 'clear') {
+          clearSimulation();
+        } else if (command.action === 'show_event') {
+          setStatus(command.message);
+        } else if (command.action === 'fit_bounds') {
+          fitSimulationBounds();
+        } else {
+          throw new Error('Unknown simulation command: ' + command.action);
+        }
+      } catch (error) {
+        setStatus('Simulation map error: ' + error.message);
+        console.error(error);
+      }
     }
 
     function normalizeNumber(value) {
