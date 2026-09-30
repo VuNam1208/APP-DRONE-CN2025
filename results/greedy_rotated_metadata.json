@@ -1,0 +1,25 @@
+{
+  "model": "offline point-kinematic simulation",
+  "not_sitl": true,
+  "mission_layout": "rotated",
+  "mission_hash": "9336441741f17115",
+  "code_hash": "e78f65b36b58de4a",
+  "git_revision": "dc8edfe",
+  "repeats": 1,
+  "progresses": [
+    0.2,
+    0.4,
+    0.6,
+    0.8
+  ],
+  "failed_uavs": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "speed_mps": 2.0,
+  "d_safe_m": 15.0,
+  "raw_csv": "greedy_rotated_raw.csv",
+  "summary_csv": "greedy_rotated_summary.csv"
+}

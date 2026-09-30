@@ -1,0 +1,127 @@
+\begin{thebibliography}{10}
+
+\bibitem{Galceran2013}
+E.~Galceran and M.~Carreras, ``A survey on coverage path planning for
+  robotics,'' {\em Robotics and Autonomous Systems}, vol.~61, no.~12,
+  pp.~1258--1276, 2013.
+
+\bibitem{Cabreira2019}
+T.~M. Cabreira, L.~B. Brisolara, and P.~R. Ferreira~Jr., ``Survey on coverage
+  path planning with unmanned aerial vehicles,'' {\em Drones}, vol.~3, no.~1,
+  p.~4, 2019.
+
+\bibitem{Fevgas2022}
+G.~Fevgas, T.~Lagkas, V.~Argyriou, and P.~Sarigiannidis, ``Coverage path
+  planning methods focusing on energy efficient and cooperative strategies for
+  unmanned aerial vehicles,'' {\em Sensors}, vol.~22, no.~3, p.~1235, 2022.
+
+\bibitem{Choset2001}
+H.~Choset, ``Coverage for robotics -- {A} survey of recent results,'' {\em
+  Annals of Mathematics and Artificial Intelligence}, vol.~31, pp.~113--126,
+  2001.
+
+\bibitem{Maza2007}
+I.~Maza and A.~Ollero, ``Multiple {UAV} cooperative searching operation using
+  polygon area decomposition and efficient coverage algorithms,'' in {\em
+  Distributed Autonomous Robotic Systems 6}, pp.~221--230, Springer, 2007.
+
+\bibitem{Avellar2015}
+G.~S.~C. Avellar, G.~A.~S. Pereira, L.~C.~A. Pimenta, and P.~Iscold,
+  ``Multi-{UAV} routing for area coverage and remote sensing with minimum
+  time,'' {\em Sensors}, vol.~15, no.~11, pp.~27783--27803, 2015.
+
+\bibitem{DiFranco2015}
+C.~Di~Franco and G.~Buttazzo, ``Energy-aware coverage path planning of
+  {UAVs},'' in {\em Proc. IEEE Int. Conf. Auton. Robot Syst. Competitions
+  (ICARSC)}, pp.~111--117, 2015.
+
+\bibitem{Gerkey2004}
+B.~P. Gerkey and M.~J. Matari{\'c}, ``A formal analysis and taxonomy of task
+  allocation in multi-robot systems,'' {\em The International Journal of
+  Robotics Research}, vol.~23, no.~9, pp.~939--954, 2004.
+
+\bibitem{Dias2006}
+M.~B. Dias, R.~Zlot, N.~Kalra, and A.~Stentz, ``Market-based multirobot
+  coordination: A survey and analysis,'' {\em Proceedings of the IEEE},
+  vol.~94, no.~7, pp.~1257--1270, 2006.
+
+\bibitem{Choi2009}
+H.-L. Choi, L.~Brunet, and J.~P. How, ``Consensus-based decentralized auctions
+  for robust task allocation,'' {\em IEEE Transactions on Robotics}, vol.~25,
+  no.~4, pp.~912--926, 2009.
+
+\bibitem{Brunet2008}
+L.~Brunet, H.-L. Choi, and J.~P. How, ``Consensus-based auction approaches for
+  decentralized task assignment,'' in {\em AIAA Guidance, Navigation and
+  Control Conference and Exhibit}, 2008.
+\newblock Paper AIAA 2008-6839.
+
+\bibitem{Lemaire2004}
+T.~Lemaire, R.~Alami, and S.~Lacroix, ``A distributed tasks allocation scheme
+  in multi-{UAV} context,'' in {\em Proc. IEEE ICRA}, pp.~3622--3627, 2004.
+
+\bibitem{Parker1998}
+L.~E. Parker, ``{ALLIANCE}: An architecture for fault tolerant multirobot
+  cooperation,'' {\em IEEE Transactions on Robotics and Automation}, vol.~14,
+  no.~2, pp.~220--240, 1998.
+
+\bibitem{Barnawi2025}
+W.~T. Barnawi, G.~M. Nicholls, C.~D. McAllister, and A.~Y. Ortiz, ``Integrated
+  consensus framework for task assignment and path planning of a degraded {UAV}
+  fleet,'' {\em Drones and Autonomous Vehicles}, vol.~2, no.~4, p.~10016, 2025.
+
+\bibitem{Zeng2026}
+Y.~Zeng, L.~Wu, J.~Li, and X.~Zhuang, ``Enhancing {UAV} swarm resilience to
+  payload failures: A bidirectional task reallocation approach,'' {\em IEEE
+  Systems Journal}, vol.~20, no.~1, pp.~223--234, 2026.
+
+\bibitem{Giacomossi2026}
+L.~Giacomossi, A.~Haglund, C.~Namatovu, E.~Zainali, E.~M{\aa}lqvist, Y.~M.
+  Beyene, I.~Tomasic, B.~{\c{C}}{\"u}r{\"u}kl{\"u}, and H.~Forsberg,
+  ``Market-based replanning for safety-critical {UAV} swarms in search and
+  rescue missions,'' in {\em Proc. 49th Int. Conv. Information, Communication
+  and Electronic Technology (MIPRO)}, 2026.
+\newblock Accepted; preprint arXiv:2606.01970.
+
+\bibitem{Fiorini1998}
+P.~Fiorini and Z.~Shiller, ``Motion planning in dynamic environments using
+  velocity obstacles,'' {\em The International Journal of Robotics Research},
+  vol.~17, no.~7, pp.~760--772, 1998.
+
+\bibitem{vandenBerg2008}
+J.~van~den Berg, M.~Lin, and D.~Manocha, ``Reciprocal velocity obstacles for
+  real-time multi-agent navigation,'' in {\em Proc. IEEE ICRA}, pp.~1928--1935,
+  2008.
+
+\bibitem{vandenBerg2011}
+J.~van~den Berg, S.~J. Guy, M.~Lin, and D.~Manocha, ``Reciprocal n-body
+  collision avoidance,'' in {\em Robotics Research}, vol.~70 of {\em Springer
+  Tracts in Advanced Robotics}, pp.~3--19, Springer, 2011.
+
+\bibitem{Ferrera2018}
+E.~Ferrera, A.~Alc{\'a}ntara, J.~Capit{\'a}n, A.~R. Casta{\~n}o, P.~J.
+  Marr{\'o}n, and A.~Ollero, ``Decentralized {3D} collision avoidance for
+  multiple {UAVs} in outdoor environments,'' {\em Sensors}, vol.~18, no.~12,
+  p.~4101, 2018.
+
+\bibitem{Huang2019}
+S.~Huang, R.~Teo, and W.~Liu, ``Distributed cooperative avoidance control for
+  multi-unmanned aerial vehicles,'' {\em Actuators}, vol.~8, no.~1, p.~1, 2019.
+
+\bibitem{Meier2015}
+L.~Meier, D.~Honegger, and M.~Pollefeys, ``{PX4}: A node-based multithreaded
+  open source robotics framework for deeply embedded platforms,'' in {\em Proc.
+  IEEE ICRA}, pp.~6235--6240, 2015.
+
+\bibitem{MAVSDK}
+{MAVSDK Development Team}, ``Mission and telemetry {APIs}.'' [Online].
+  Available: \url{https://mavsdk.mavlink.io/main/en/}.
+\newblock Accessed: Sep. 29, 2026.
+
+\bibitem{PX4Failsafe}
+{PX4 Development Team}, ``Failsafe and return mode documentation.'' [Online].
+  Available: \url{https://docs.px4.io/main/en/config/safety}.
+\newblock Accessed: Sep. 29, 2026; see also
+  \url{https://docs.px4.io/main/en/flight_modes/return}.
+
+\end{thebibliography}

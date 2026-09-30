@@ -1,0 +1,19 @@
+{
+  "model": "offline point-kinematic simulation",
+  "not_sitl": true,
+  "mission_layout": "adjacent",
+  "mission_hash": "8ab62245bebb5e70",
+  "code_hash": "3b62b18a424d65fd",
+  "git_revision": "dc8edfe",
+  "repeats": 1,
+  "progresses": [
+    0.4
+  ],
+  "failed_uavs": [
+    1
+  ],
+  "speed_mps": 2.0,
+  "d_safe_m": 15.0,
+  "raw_csv": "transit_check_raw.csv",
+  "summary_csv": "transit_check_summary.csv"
+}

@@ -15,6 +15,7 @@ GPS_DIR = os.path.join(BASE_DIR, "gps")
 
 class MapBridge(QObject):
     simulationCommand = pyqtSignal(str)
+    mapReady = pyqtSignal()
 
     def __init__(self, window):
         super().__init__()
@@ -29,6 +30,7 @@ class MapBridge(QObject):
         self._simulation_queue = []
         for command in queued:
             self.simulationCommand.emit(command)
+        self.mapReady.emit()
 
     def _send_simulation_command(self, action, **payload):
         command = json.dumps(
@@ -73,6 +75,13 @@ class MapBridge(QObject):
                 "altitude_m": altitude,
             }
         self._send_simulation_command("set_positions", positions=normalized)
+
+    def appendSimulationTrail(self, drone_id, position):
+        self._send_simulation_command(
+            "append_trail",
+            drone_id=int(drone_id),
+            position=[float(position[0]), float(position[1])],
+        )
 
     def markFailedDrone(self, drone_id, position):
         self._send_simulation_command(
@@ -439,6 +448,9 @@ def setup_integrated_map(window):
     window.map_channel = QWebChannel(window.ui.embedded_map_view.page())
     window.map_channel.registerObject("mapBridge", window.map_bridge)
     window.ui.embedded_map_view.page().setWebChannel(window.map_channel)
+    window.ui.embedded_map_view.page().renderProcessTerminated.connect(
+        window.on_map_renderer_terminated
+    )
     window.ui.embedded_map_view.setHtml(integrated_map_html(), QUrl("https://app-drone.local/"))
 
 
@@ -639,6 +651,26 @@ def integrated_map_html():
       font-weight: 700;
       padding: 1px 4px;
     }
+    .sim-area-label {
+      border: 1px solid #0f172a;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      box-shadow: none;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 6px;
+    }
+    .sim-zone-label {
+      border: 1px solid #475569;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #172033;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 5px;
+    }
   </style>
 </head>
 <body>
@@ -703,10 +735,10 @@ def integrated_map_html():
       }, 0);
     });
 
-    var canvasRenderer = L.canvas({ padding: 0.35 });
+    var canvasRenderer = L.svg({ padding: 0.35 });
     var map = L.map('map', {
       zoomControl: true,
-      preferCanvas: true,
+      preferCanvas: false,
       renderer: canvasRenderer,
       zoomAnimation: false,
       fadeAnimation: false,
@@ -714,8 +746,8 @@ def integrated_map_html():
       keyboard: false,
       inertia: false,
       tap: false,
-      zoomSnap: 1,
-      zoomDelta: 1,
+      zoomSnap: 0.25,
+      zoomDelta: 0.5,
       wheelDebounceTime: 180,
       wheelPxPerZoomLevel: 150
     }).setView([21.0609062, 105.791999817], 16);
@@ -750,7 +782,10 @@ def integrated_map_html():
       failed: L.layerGroup().addTo(map),
       replan: L.layerGroup().addTo(map)
     };
+    var simulationCoverageLayer = L.layerGroup().addTo(map);
     var simulationMarkers = {};
+    var simulationTrails = {};
+    var simulationTrailEnabled = true;
     var simulationColors = ['#2563eb', '#16a34a', '#f59e0b', '#7c3aed', '#db2777', '#0891b2'];
     var gridVisible = false;
     var gridPathVisible = false;
@@ -776,10 +811,35 @@ def integrated_map_html():
       Object.keys(simulationLayers).forEach(function(phase) {
         simulationLayers[phase].clearLayers();
       });
+      simulationCoverageLayer.clearLayers();
       Object.keys(simulationMarkers).forEach(function(droneId) {
         map.removeLayer(simulationMarkers[droneId]);
       });
       simulationMarkers = {};
+      simulationTrails = {};
+      simulationTrailEnabled = true;
+    }
+
+    function appendSimulationTrail(droneId, position) {
+      if (!simulationTrailEnabled) {
+        return;
+      }
+      var key = String(droneId);
+      var point = [parseFloat(position[0]), parseFloat(position[1])];
+      if (!Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
+        return;
+      }
+      if (!simulationTrails[key]) {
+        simulationTrails[key] = L.polyline([], {
+          renderer: canvasRenderer,
+          color: simulationColor(key),
+          weight: 5,
+          opacity: 0.92,
+          interactive: false,
+          smoothFactor: 1.0
+        }).addTo(simulationLayers.flown);
+      }
+      simulationTrails[key].addLatLng(point);
     }
 
     function setSimulationRoutes(routes, phase) {
@@ -787,10 +847,26 @@ def integrated_map_html():
       if (!layer) {
         throw new Error('Unknown simulation route phase: ' + phase);
       }
+      if (phase === 'replan') {
+        // In SIM replan view, show only active replacement routes and moving
+        // markers. Historical trails and obsolete futures otherwise look like
+        // extra planned trajectories.
+        simulationLayers.initial.clearLayers();
+        simulationLayers.failed.clearLayers();
+        simulationLayers.flown.clearLayers();
+        simulationTrails = {};
+        simulationTrailEnabled = false;
+      }
       layer.clearLayers();
+      if (phase === 'flown') {
+        simulationTrails = {};
+      }
+      if (phase === 'initial') {
+        drawSimulationCoverageBoundary(routes);
+      }
       Object.keys(routes || {}).forEach(function(droneId) {
         var route = routes[droneId];
-        if (!Array.isArray(route) || route.length < 2) {
+        if (!Array.isArray(route) || route.length < (phase === 'flown' ? 1 : 2)) {
           return;
         }
         var style = {
@@ -810,8 +886,189 @@ def integrated_map_html():
         } else if (phase === 'flown') {
           style.weight = 5;
         }
-        L.polyline(route, style).addTo(layer);
+        // Keep the planned coverage line inside its assigned map region.
+        // Home transit is still visible through the live flown trail.
+        var displayedRoute = phase === 'initial' ? simulationCoverageRoute(route) : route;
+        var line = L.polyline(displayedRoute, style).addTo(layer);
+        if (phase === 'flown') {
+          simulationTrails[String(droneId)] = line;
+        }
       });
+    }
+
+    function simulationCoverageRoute(route) {
+      if (!Array.isArray(route) || route.length <= 3) {
+        return route || [];
+      }
+      var first = route[0];
+      var last = route[route.length - 1];
+      var closesAtHome = Array.isArray(first) && Array.isArray(last) &&
+        Math.abs(parseFloat(first[0]) - parseFloat(last[0])) < 1e-9 &&
+        Math.abs(parseFloat(first[1]) - parseFloat(last[1])) < 1e-9;
+      return closesAtHome ? route.slice(1, -1) : route;
+    }
+
+    function drawSimulationCoverageBoundary(routes) {
+      simulationCoverageLayer.clearLayers();
+      var points = [];
+      var zones = [];
+      Object.keys(routes || {}).forEach(function(droneId) {
+        var routePoints = [];
+        var rawRoute = routes[droneId] || [];
+        // Use the same coverage waypoints for both route and partition geometry.
+        var coverageRoute = simulationCoverageRoute(rawRoute);
+        coverageRoute.forEach(function(point) {
+          var lat = parseFloat(point[0]);
+          var lng = parseFloat(point[1]);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            points.push([lat, lng]);
+            routePoints.push([lat, lng]);
+          }
+        });
+        if (routePoints.length >= 3) {
+          zones.push({
+            droneId: droneId,
+            centerLat: routePoints.reduce(function(sum, point) { return sum + point[0]; }, 0) / routePoints.length,
+            centerLng: routePoints.reduce(function(sum, point) { return sum + point[1]; }, 0) / routePoints.length
+          });
+        }
+      });
+      if (points.length < 2 || zones.length === 0) {
+        return;
+      }
+
+      var minLat = Math.min.apply(null, points.map(function(point) { return point[0]; }));
+      var maxLat = Math.max.apply(null, points.map(function(point) { return point[0]; }));
+      var minLng = Math.min.apply(null, points.map(function(point) { return point[1]; }));
+      var maxLng = Math.max.apply(null, points.map(function(point) { return point[1]; }));
+      var mapCenterLat = (minLat + maxLat) / 2;
+      minLat -= 3.0 / 111320;
+      maxLat += 3.0 / 111320;
+      var lngPad = 3.0 / (111320 * Math.max(0.2, Math.cos(mapCenterLat * Math.PI / 180)));
+      minLng -= lngPad;
+      maxLng += lngPad;
+
+      var latSpread = Math.max.apply(null, zones.map(function(item) { return item.centerLat; })) -
+                      Math.min.apply(null, zones.map(function(item) { return item.centerLat; }));
+      var lngSpread = Math.max.apply(null, zones.map(function(item) { return item.centerLng; })) -
+                      Math.min.apply(null, zones.map(function(item) { return item.centerLng; }));
+      var splitByLatitude = latSpread >= lngSpread;
+      zones.sort(function(a, b) {
+        return splitByLatitude ? b.centerLat - a.centerLat : a.centerLng - b.centerLng;
+      });
+
+      zones.forEach(function(item, index) {
+        var zoneBounds;
+        if (splitByLatitude) {
+          var north = index === 0 ? maxLat : (zones[index - 1].centerLat + item.centerLat) / 2;
+          var south = index === zones.length - 1 ? minLat : (item.centerLat + zones[index + 1].centerLat) / 2;
+          zoneBounds = [[north, minLng], [north, maxLng], [south, maxLng], [south, minLng]];
+        } else {
+          var west = index === 0 ? minLng : (zones[index - 1].centerLng + item.centerLng) / 2;
+          var east = index === zones.length - 1 ? maxLng : (item.centerLng + zones[index + 1].centerLng) / 2;
+          zoneBounds = [[maxLat, west], [maxLat, east], [minLat, east], [minLat, west]];
+        }
+        var zone = L.polygon(zoneBounds, {
+            renderer: canvasRenderer,
+            color: simulationColor(item.droneId),
+            weight: 2.0,
+            opacity: 0.92,
+            dashArray: '9 5',
+            fillColor: simulationColor(item.droneId),
+            fillOpacity: 0.09,
+            interactive: false
+          }).addTo(simulationCoverageLayer);
+          var labelLat = zoneBounds.reduce(function(sum, point) { return sum + point[0]; }, 0) / zoneBounds.length;
+          var labelLng = zoneBounds.reduce(function(sum, point) { return sum + point[1]; }, 0) / zoneBounds.length;
+          L.tooltip({
+            permanent: true,
+            direction: 'center',
+            className: 'sim-zone-label'
+          }).setLatLng([labelLat, labelLng])
+            .setContent('VÙNG UAV ' + item.droneId)
+            .addTo(simulationCoverageLayer);
+          zone.bringToBack();
+      });
+      var boundaryBounds = [[maxLat, minLng], [maxLat, maxLng], [minLat, maxLng], [minLat, minLng]];
+      var boundary = L.polygon(boundaryBounds, {
+        renderer: canvasRenderer,
+        color: '#334155',
+        weight: 2.0,
+        opacity: 0.8,
+        dashArray: '3 5',
+        fillColor: '#90caf9',
+        fillOpacity: 0.025,
+        interactive: false
+      }).addTo(simulationCoverageLayer);
+      L.tooltip({
+        permanent: true,
+        direction: 'top',
+        offset: [0, -5],
+        className: 'sim-area-label'
+      }).setLatLng([maxLat, (minLng + maxLng) / 2])
+        .setContent('KHU VỰC QUÉT')
+        .addTo(simulationCoverageLayer);
+      boundary.bringToBack();
+    }
+
+    function simulationPadHull(hull, marginMeters) {
+      if (!hull.length) {
+        return hull;
+      }
+      var centerLat = hull.reduce(function(sum, point) { return sum + point[0]; }, 0) / hull.length;
+      var centerLng = hull.reduce(function(sum, point) { return sum + point[1]; }, 0) / hull.length;
+      var cosLat = Math.max(0.2, Math.cos(centerLat * Math.PI / 180));
+      return hull.map(function(point) {
+        var north = (point[0] - centerLat) * 111320;
+        var east = (point[1] - centerLng) * 111320 * cosLat;
+        var distance = Math.sqrt(north * north + east * east);
+        if (distance < 0.01) {
+          return point;
+        }
+        var factor = (distance + marginMeters) / distance;
+        return [
+          centerLat + (north * factor) / 111320,
+          centerLng + (east * factor) / (111320 * cosLat)
+        ];
+      });
+    }
+
+    function simulationConvexHull(points) {
+      var unique = {};
+      points.forEach(function(point) {
+        unique[point[0].toFixed(10) + ',' + point[1].toFixed(10)] = point;
+      });
+      var ordered = Object.keys(unique).map(function(key) {
+        return unique[key];
+      }).sort(function(a, b) {
+        return a[1] === b[1] ? a[0] - b[0] : a[1] - b[1];
+      });
+      if (ordered.length <= 2) {
+        return ordered;
+      }
+      function cross(origin, a, b) {
+        return (a[1] - origin[1]) * (b[0] - origin[0]) -
+               (a[0] - origin[0]) * (b[1] - origin[1]);
+      }
+      var lower = [];
+      ordered.forEach(function(point) {
+        while (lower.length >= 2 &&
+               cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) {
+          lower.pop();
+        }
+        lower.push(point);
+      });
+      var upper = [];
+      ordered.slice().reverse().forEach(function(point) {
+        while (upper.length >= 2 &&
+               cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) {
+          upper.pop();
+        }
+        upper.push(point);
+      });
+      lower.pop();
+      upper.pop();
+      return lower.concat(upper);
     }
 
     function setSimulationPositions(positions) {
@@ -834,7 +1091,7 @@ def integrated_map_html():
             fillOpacity: 1.0,
             interactive: false
           }).addTo(map);
-          marker.bindTooltip('UAV ' + droneId, {
+          marker.bindTooltip('UAV ' + droneId + ' | ' + pointAltitude(state), {
             permanent: true,
             direction: 'top',
             className: 'sim-uav-label',
@@ -844,8 +1101,14 @@ def integrated_map_html():
         } else {
           marker.setLatLng(point);
           marker.setStyle({fillColor: color});
+          marker.setTooltipContent('UAV ' + droneId + ' | ' + pointAltitude(state));
         }
       });
+    }
+
+    function pointAltitude(state) {
+      var altitude = parseFloat(state.altitude_m);
+      return Number.isFinite(altitude) ? ('h=' + altitude.toFixed(0) + 'm') : 'h=--';
     }
 
     function markFailedDrone(droneId, position) {
@@ -873,7 +1136,7 @@ def integrated_map_html():
         points.push(simulationMarkers[droneId].getLatLng());
       });
       if (points.length) {
-        map.fitBounds(L.latLngBounds(points), {padding: [24, 24], maxZoom: 18});
+        map.fitBounds(L.latLngBounds(points), {padding: [8, 8], maxZoom: 19});
       }
     }
 
@@ -884,6 +1147,8 @@ def integrated_map_html():
           setSimulationRoutes(command.routes, command.phase);
         } else if (command.action === 'set_positions') {
           setSimulationPositions(command.positions);
+        } else if (command.action === 'append_trail') {
+          appendSimulationTrail(command.drone_id, command.position);
         } else if (command.action === 'mark_failed') {
           markFailedDrone(command.drone_id, command.position);
         } else if (command.action === 'clear') {

@@ -1,0 +1,363 @@
+                  TNU Journal of Science and Technology                               231(10): 106 - 113
+
+STRUCTURAL ANALYSIS AND OPTIMAL DESIGN OF DRONE ARMS
+USING THE FINITE ELEMENT METHOD (ANSYS)
+Do Huy Diep, Nguyen Hoang Quan*
+University of Engineering and Technology - Vietnam National University, Hanoi
+
+         ARTICLE INFO           ABSTRACT
+         Received:    31/3/2026 This paper presents a study on the structural analysis and geometric
+                                optimization of drone arms for two multirotor UAV configurations: a
+          Revised:    28/5/2026 quadcopter with a 1 kg payload and a hexacopter with a 2 kg payload.
+        Published:    29/5/2026 Numerical models were developed in ANSYS Static Structural to evaluate
+                                total deformation, equivalent von Mises stress, and the safety level of
+KEYWORDS                        different geometric configurations under representative motor thrust loads.
+                                For the quadcopter, AL7075-T6 aluminum alloy arms were investigated in
+UAV                             the original configuration and in two hollowed configurations aimed at
+Drone arm                       weight reduction. For the hexacopter, two landing arm designs, namely a
+                                non-folding configuration and a folding-joint configuration, were compared
+Finite element
+                                in terms of stiffness, stress, and mass efficiency. The results show that the
+Structural optimization         elliptical-hole design provides a more favorable stress distribution than the
+Von Mises stress                rectangular-hole design because it reduces stress concentration at sharp
+                                corners, while the non-folding hexacopter arm exhibits better structural
+                                performance when mass and stress are considered simultaneously. These
+                                findings indicate that finite element analysis is an effective tool for screening
+                                and selecting drone arm geometries in the early design stage, particularly for
+                                weight-reduction problems while still ensuring structural strength and
+                                stiffness requirements.
+
+PHÂN TÍCH KẾT CẤU VÀ THIẾT KẾ TỐI ƢU CÁNH TAY DRONE
+BẰNG PHƢƠNG PHÁP PHẦN TỬ HỮU HẠN (ANSYS)
+Đỗ Huy Điệp, Nguyễn Hoàng Quân*
+Trường Đại học Công nghệ - ĐH Quốc gia Hà Nội
+
+      THÔNG TIN BÀI BÁO            TÓM TẮT
+        Ngày nhận bài: 31/3/2026 Bài báo trình bày nghiên cứu phân tích kết cấu và tối ưu hóa hình học
+                                   cánh tay drone cho hai cấu hình UAV đa cánh quạt gồm quadcopter
+      Ngày hoàn thiện: 28/5/2026 mang tải 1 kg và hexacopter mang tải 2 kg. Mô hình số được xây dựng
+           Ngày đăng: 29/5/2026 trong ANSYS Static Structural nhằm đánh giá chuyển vị tổng, ứng suất
+                               tương đương von Mises và mức độ an toàn của các phương án hình học
+TỪ KHÓA                        dưới tải đẩy đại diện của động cơ. Đối với quadcopter, cánh tay hợp kim
+                               nhôm AL7075-T6 được khảo sát ở cấu hình nguyên bản và hai cấu hình
+UAV                            khoét rỗng nhằm giảm khối lượng. Đối với hexacopter, hai phương án
+Cánh tay drone                 tay tre dạng không gập và có khớp gập được so sánh về độ cứng, ứng
+Phần tử hữu hạn                suất và hiệu quả khối lượng. Kết quả cho thấy phương án lỗ elip tạo
+                               phân bố ứng suất thuận lợi hơn lỗ chữ nhật do giảm tập trung ứng suất
+Tối ưu kết cấu                 tại các góc sắc, trong khi phương án tay không gập của hexacopter cho
+Ứng suất von Mises             hiệu quả kết cấu tốt hơn khi xét đồng thời khối lượng và ứng suất. Các
+                               kết quả thu được cho thấy phân tích phần tử hữu hạn là công cụ phù hợp
+                               để sàng lọc và lựa chọn phương án hình học cánh tay drone ở giai đoạn
+                               thiết kế ban đầu, đặc biệt đối với bài toán giảm khối lượng nhưng vẫn
+                               bảo đảm yêu cầu độ bền và độ cứng kết cấu.
+DOI: https://doi.org/10.34238/tnu-jst.15262
+
+*
+    Corresponding author. Email: nhquan@vnu.edu.vn
+
+http://jst.tnu.edu.vn                                106                                 Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                       231(10): 106 - 113
+
+1. Giới thiệu
+    Sự phát triển của UAV trong quan sát, logistics, nông nghiệp và kiểm tra hạ tầng làm tăng nhu
+cầu về kết cấu nhẹ nhưng đủ bền và cứng. Đối với drone đa cánh quạt, cánh tay drone là chi tiết
+truyền lực từ cụm động cơ – cánh quạt về thân trung tâm, đồng thời quyết định độ cứng vững,
+khối lượng bản thân và độ tin cậy làm việc của toàn hệ.
+    Về cơ học, cánh tay drone có thể xem gần đúng như một dầm công xôn chịu tải tập trung tại
+đầu tự do. Yêu cầu thiết kế thường mang tính đánh đổi: kết cấu phải đủ cứng để hạn chế rung và
+biến dạng, nhưng cũng phải đủ nhẹ để tăng thời gian bay và tải trọng hữu ích. Trong bối cảnh đó,
+phương pháp phần tử hữu hạn (Finite Element Method – FEM) được lựa chọn như một công cụ
+phân tích phù hợp. So với các mô hình giải tích đơn giản, FEM cho phép mô tả chính xác hơn
+hình học phức tạp, đặc tính vật liệu không đồng nhất và điều kiện biên thực tế của kết cấu UAV.
+Đồng thời, phương pháp này cho phép đánh giá đồng thời các đại lượng cơ học quan trọng như
+chuyển vị, ứng suất và đặc trưng dao động trong cùng một khung tính toán. Nhờ khả năng mô
+phỏng linh hoạt và hiệu quả, FEM đặc biệt phù hợp cho việc khảo sát nhanh nhiều phương án
+hình học trong giai đoạn thiết kế sơ bộ, qua đó hỗ trợ lựa chọn cấu hình tối ưu giữa độ cứng, khối
+lượng và đặc tính động lực học của hệ.
+    Các nghiên cứu gần đây cho thấy phương pháp phần tử hữu hạn (FEM) được sử dụng rộng rãi
+trong phân tích kết cấu UAV nhằm đánh giá chuyển vị, ứng suất, đặc trưng dao động và tối ưu hóa
+khối lượng [1]-[3]. Kết quả từ các công trình này chỉ ra rằng các vùng nguy hiểm thường tập trung
+tại gốc cánh tay, vị trí liên kết và các khu vực có gián đoạn hình học, nơi xảy ra tập trung ứng suất
+đáng kể [4], [5]. Tuy nhiên, các nghiên cứu chuyên sâu về chi tiết cánh tay drone, đặc biệt liên quan
+đến các phương án khoét rỗng giảm khối lượng và cơ cấu gập, vẫn còn hạn chế [6]-[8].
+    Do đó, nghiên cứu này được thực hiện nhằm bổ sung khoảng trống trên thông qua việc so
+sánh có hệ thống các phương án hình học cục bộ, bao gồm cấu hình khoét rỗng và thiết kế
+gập/không gập, trong giai đoạn thiết kế sơ bộ. Trên cơ sở đó, hai cấu hình UAV điển hình gồm
+quadcopter mang tải 1 kg và hexacopter mang tải 2 kg được lựa chọn để phân tích bằng FEM
+trong ANSYS, với các chỉ tiêu đánh giá chính bao gồm chuyển vị, ứng suất và hiệu quả kết cấu.
+2. Mô hình và phƣơng pháp nghiên cứu
+2.1. Mô hình cơ học và chỉ tiêu đánh giá
+    Nghiên cứu sử dụng phương pháp phần tử hữu hạn tuyến tính đàn hồi trong ANSYS Static
+Structural để phân tích tĩnh hai cấu hình cánh tay drone [9]. Bài toán được mô tả bởi hệ phương
+trình cân bằng tổng quát:
+                                       , -* + * +                                            (1)
+    Trường biến dạng và ứng suất được xác định theo công thức:
+                                       * + , -* +                                            (2)
+                                       * + , -* +                                            (3)
+    Điều kiện bền được đánh giá theo ứng suất tương đương von Mises:
+
+                        *   +   √ ,(      )    (         )    (        ) -                        (4)
+
+   Trong đó, [K] là ma trận độ cứng tổng thể của kết cấu, {u} là vectơ chuyển vị nút và {F} là
+vectơ tải trọng ngoài. Trường biến dạng phần tử được xác định từ quan hệ chuyển vị – biến dạng;
+trường ứng suất được xác định theo định luật Hooke đối với vật liệu đàn hồi tuyến tính đẳng
+hướng. Đại lượng σ{vm} là ứng suất tương đương von Mises, được dùng để đánh giá nguy cơ chảy
+dẻo của vật liệu.
+   Các phương án được so sánh theo ba chỉ tiêu chính: chuyển vị cực đại, ứng suất cực đại và
+khối lượng kết cấu. Điều kiện chấp nhận là ứng suất nhỏ hơn giới hạn chảy của vật liệu và
+
+
+http://jst.tnu.edu.vn                          107                             Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                           231(10): 106 - 113
+
+chuyển vị nằm trong giới hạn làm việc cho phép. Tải tác dụng lên mỗi động cơ được mô phỏng
+dưới dạng lực tập trung tương đương với trạng thái bay ổn định.
+    Tiêu chí đánh giá thiết kế bao gồm: (i) ứng suất lớn nhất nhỏ hơn giới hạn chảy của vật liệu,
+             ; và (ii) chuyển vị đầu mút nằm trong giới hạn cho phép của cấu hình bay,
+        . Trên cơ sở đó, các phương án hình học được so sánh theo mục tiêu giảm khối lượng
+nhưng vẫn bảo đảm độ bền và độ cứng cần thiết.
+    Đối với tải đẩy, tải tác dụng lên mỗi động cơ được giả thiết dưới dạng lực tương đương ứng
+với trạng thái bay ổn định. Trong bài báo, tải được diễn giải theo mô hình lực đẩy cánh quạt dạng
+                 , đồng thời đối chiếu với dải lực đẩy điển hình của các hệ multirotor cỡ nhỏ trong
+tài liệu công bố để bảo đảm tính hợp lý về mặt cơ học [8], [10].
+2.2. Xây dựng mô hình phần tử hữu hạn
+    Đối với quadcopter, cánh tay được mô hình hóa bằng hợp kim nhôm AL7075-T6, tiết diện
+hộp chữ nhật mỏng thành kích thước 11 × 20 × 350 mm, chiều dày 0,5 mm. Đối với hexacopter,
+tay drone sử dụng ống tre có đường kính ngoài 20 mm và đường kính trong 14 mm (Hình 1).
+Tính chất vật liệu dùng trong mô phỏng được trình bày ở Bảng 1.
+    Mô hình hình học được dựng trong ANSYS/DesignModeler và chia lưới với làm mịn cục bộ
+tại đầu ngàm, lỗ bu lông, vùng tiếp giáp gối nối và khu vực lắp giá đỡ động cơ (Hình 2). Chất
+lượng lưới được kiểm soát thông qua các chỉ số Skewness và Orthogonal Quality [11].
+                           Bảng 1. Tính chất vật liệu sử dụng trong mô phỏng
+       Vật liệu              E (GPa)                ν             σyield (MPa)           ρ (kg/m³)
+   AL7075-T6                   68,9               0,32                 480                  2804
+   Tre                          20                0,22                29,54                 1160
+
+
+
+
+   Hình 1. Mô hình 3D của cánh tay hexacopter      Hình 2. Dạng lưới phần tử hữu hạn áp dụng cho mô
+                  có khớp nối                         hình; lưới được làm mịn tại vùng quan trọng
+2.3. Điều kiện biên
+    Hai cấu hình đều được mô hình hóa như dầm công xôn, trong đó đầu nối với thân được ngàm
+cố định và đầu tự do chịu tải từ động cơ. Đối với quadcopter mang tải 1 kg, tải tập trung tại đầu
+tay là F = 6 N (Hình 3); đối với hexacopter mang tải 2 kg, tải tương ứng là 10 N (Hình 4 và Hình
+5). Các phương án được đánh giá theo chuyển vị cực đại, ứng suất cực đại và phân bố ứng suất
+tại các vùng chuyển tiếp hình học.
+    Giá trị tải trọng được xác định từ phương trình lực đẩy cánh quạt                 trong đó
+là hệ số lực đẩy ( 0,1 cho cánh quạt UAV thông thường), là mật độ không khí (1,225 kg/m3,
+là tốc độ quay (Hz), và là đường kính cánh quạt (m). Với quadcopter mang tải 1 kg, tổng lực
+đẩy cần thiết để bay ổn định là khoảng          (      )                 (hệ số dự trữ 1,3), phân
+bố đều cho 4 động cơ               /động cơ. Tương tự với hexacopter mang tải 2 kg, tải trên mỗi
+động cơ là khoảng 10 N. Tiêu chí chuyển vị cho phép             được dùng như ràng buộc thiết kế
+sơ bộ để bảo đảm độ cứng tương đối, không phải giới hạn tiêu chuẩn bắt buộc.
+http://jst.tnu.edu.vn                           108                                Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                          231(10): 106 - 113
+
+    Điều kiện biên ngàm cứng hoàn toàn tại gốc tay được áp dụng theo hướng bảo toàn để nhận
+diện vùng nguy hiểm và so sánh nhất quán giữa các phương án. Trong thực tế, liên kết với thân
+drone có độ mềm nhất định, do đó trị số tuyệt đối về ứng suất và chuyển vị có thể khác, nhưng xu
+hướng phân bố ứng suất và xếp hạng tương đối giữa các phương án vẫn có giá trị tham khảo cho
+thiết kế sơ bộ.
+
+
+
+
+  Hình 3. Điều kiện biên của bài toán quadcopter: ngàm tại gốc tay và tải tập trung tại đầu gắn động cơ
+
+
+
+
+  Hình 4. Mô hình tay hexacopter (không khớp nối)      Hình 5. Điều kiện biên của bài toán hexacopter
+        sử dụng ống tre và cụm nối với thân                  với tải truyền qua giá đỡ động cơ
+3. Phân tích và đánh giá
+3.1. Kiểm chứng quy trình mô hình hóa
+   Quy trình mô hình hóa được kiểm tra bằng bài toán dầm công xôn chuẩn chịu lực tập trung ở
+đầu tự do. Kết quả mô phỏng cho chuyển vị lớn nhất 16,851 mm và ứng suất lớn nhất 428,76
+MPa, so với giá trị tham chiếu lần lượt là 16,741 mm và 421,8 Mpa được trình bày trong Bảng 2.
+Sai số tương ứng 0,65% và 1,62% cho thấy quy trình thiết lập bài toán trong ANSYS đủ tin cậy
+để so sánh tương đối giữa các phương án cánh tay drone trong nghiên cứu.
+                      Bảng 2. So sánh kết quả kiểm chứng bài toán dầm công xôn mẫu
+                 Đại lƣợng                      Kết quả tham chiếu             Kết quả ANSYS
+           Chuyển vị lớn nhất (mm)                    16,741                        16,851
+           Ứng suất lớn nhất (MPa)                     421,8                        428,76
+                 Sai số (%)                             0,65                         1,62
+3.2. Khảo sát hội tụ lưới
+   Để đảm bảo độ tin cậy của giá trị ứng suất và chuyển vị so sánh giữa các phương án, khảo sát
+hội tụ lưới được thực hiện với bốn mức mật độ lưới khác nhau. Ngoài khu vực toàn cục, lưới
+được làm mịn cục bộ tại gốc ngàm, vùng lỗ và khu vực giao tiếp với giá đỡ động cơ. Tiêu chí hội
+
+http://jst.tnu.edu.vn                            109                               Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                           231(10): 106 - 113
+
+tụ được xác định khi sai số tương đối của σ max giữa hai mức lưới liên tiếp nhỏ hơn 2%. Khảo sát
+hội tụ lưới cho cấu hình quadcopter — cánh tay AL7075-T6 và cấu hình hexacopter — cánh tay
+tre (cấu hình không gập) được trình bày lần lượt trong Bảng 3 và Bảng 4.
+    Ngưỡng sai số 2% được chọn như tiêu chí kỹ thuật thường dùng cho bài toán so sánh thiết kế
+sơ bộ. Với mục tiêu của nghiên cứu là sàng lọc và xếp hạng các phương án hình học, việc siết
+ngưỡng nhỏ hơn (ví dụ 1%) không làm thay đổi xu hướng lựa chọn phương án nhưng tăng đáng
+kể chi phí tính toán.
+                Bảng 3. Khảo sát hội tụ lưới — cấu hình quadcopter (mô hình cơ sở, tải F = 6 N)
+  Mức lƣới      Kích thƣớc Số phần          Số nút       δmax       σmax       Sai số       Đánh giá
+                 PT (mm)          tử                    (mm)       (MPa)       σ (%)
+     Thô            3,0        ~4.200       ~7.500      0,218       21,4         —         Tham chiếu
+    Trung           1,5       ~12.800      ~22.000      0,214       25,1       17,3%       Chưa hội tụ
+     Mịn            0,8       ~31.500      ~54.000     0,2137       26,4        5,2%        Gần hội tụ
+   Rất mịn          0,5       ~68.000 ~115.000         0,2136       26,7        1,1%          Hội tụ
+               Bảng 4. Khảo sát hội tụ lưới — cấu hình hexacopter (không gập, tải F = 10 N)
+  Mức lƣới       Kích thƣớc     Số phần      Số nút     δmax (mm)     σmax      Sai số σ       Đánh giá
+                  PT (mm)          tử                                (MPa)        (%)
+     Thô            4,0          ~2.100     ~3.800        0,917        6,9         —          Tham chiếu
+    Trung           2,0          ~6.400     ~11.500       0,903        7,8       13,0%        Chưa hội tụ
+     Mịn            1,0         ~18.000     ~31.000       0,901        8,4       7,7%         Gần hội tụ
+   Rất mịn          0,6         ~42.000     ~72.000       0,9008      8,53       1,5%           Hội tụ
+   Kết quả khảo sát cho thấy σmax đạt hội tụ tại mức lưới Rất mịn với sai số dưới 2% so với mức
+lưới liền trước, đáp ứng tiêu chí đặt ra (Bảng 3 và Bảng 4). Trong khi đó, chuyển vị δ max hội tụ
+sớm hơn và ổn định từ mức lưới Trung trở đi, cho thấy ứng suất nhạy hơn với mật độ lưới so với
+chuyển vị, đây là hành vi điển hình đối với kết cấu mỏng thành có vùng tập trung ứng suất cục
+bộ. Vì vậy, lưới Rất mịn được lựa chọn làm lưới tính toán cho tất cả các phương án trong nghiên
+cứu này.
+3.3. Trường hợp quadcopter mang tải 1 kg
+   Mô hình cơ sở cho thấy chuyển vị lớn nhất xuất hiện tại đầu gắn động cơ, còn ứng suất von
+Mises tập trung tại vùng gốc ngàm (Hình 6), phù hợp với cơ chế làm việc của dầm công xôn.
+Ứng suất cực đại đạt 26,664 MPa, nhỏ hơn nhiều so với giới hạn chảy của AL7075-T6, cho thấy
+kết cấu vẫn còn dư địa giảm khối lượng.
+
+
+
+
+             Hình 6. Trường chuyển vị và ứng suất của cánh tay quadcopter từ mô phỏng ANSYS
+   Kết quả cho thấy kết cấu còn dư bền lớn (ứng suất chỉ chiếm ~5,5% giới hạn chảy), do đó vẫn
+còn dư địa để giảm khối lượng. Phương án lỗ elip là bước tối ưu hình học cục bộ ban đầu. Các
+hướng tối ưu sâu hơn như giảm bề dày thành, tối ưu tham số hoặc topology optimization có thể
+được xem xét sau khi có thêm ràng buộc chế tạo và kiểm chứng thực nghiệm.
+
+
+http://jst.tnu.edu.vn                             110                              Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                         231(10): 106 - 113
+
+   Hai phương án khoét lỗ elip và lỗ chữ nhật được khảo sát tại cùng vị trí trên thân tay (Hình 7).
+Kết quả ở Bảng 5 cho thấy chuyển vị thay đổi không đáng kể, nhưng ứng suất cực đại phụ thuộc
+rõ vào hình dạng lỗ. Cụ thể, lỗ elip chỉ làm ứng suất tăng khoảng 10,3% so với mô hình cơ sở,
+trong khi lỗ chữ nhật làm tăng khoảng 52,9%. Điều này cho thấy biên cong của lỗ elip giúp giảm
+tập trung ứng suất tốt hơn so với lỗ có góc sắc (Hình 8).
+
+
+
+
+               Hình 7. Các phương án khoét giảm khối lượng trên thân cánh tay quadcopter
+                    Bảng 5. So sánh kết quả giữa các phương án cánh tay quadcopter
+  Phƣơng án         Chuyển vị (mm)    Ứng suất (MPa)                      Nhận xét
+ Mô hình cơ sở         0,21365            26,664         Bền và cứng, còn dư địa giảm khối lượng
+    Lỗ elip            0,23930            29,425         Tăng ứng suất nhẹ, phân bố ứng suất thuận lợi
+  Lỗ chữ nhật          0,23762            40,779         Ứng suất tăng mạnh do góc sắc gây tập trung
+                                                         ứng suất
+
+
+
+
+          Hình 8. So sánh chuyển vị tổng và ứng suất tổng của ba phương án cánh tay quadcopter
+   Khi dùng lỗ elip, ứng suất cực đại chỉ tăng khoảng 10,3% so với mô hình cơ sở, trong khi lỗ
+chữ nhật làm ứng suất tăng tới khoảng 52,9%. Kết quả này có thể giải thích trực tiếp bằng cơ học
+tập trung ứng suất: các góc bo tròn của lỗ elip giúp đường truyền lực uốn được uốn liên tục hơn
+và tránh gradient ứng suất quá lớn, trái với lỗ chữ nhật có các góc sắc đóng vai trò như điểm khởi
+phát tập trung ứng suất cục bộ (Hình 8).
+3.4. Trường hợp hexacopter mang tải 2 kg
+   Đối với hexacopter, hai cấu hình tay tre được xét gồm phương án không gập và phương án có
+khớp gập. Việc bổ sung khớp gập mang lại lợi thế khai thác và cất giữ, nhưng đồng thời làm tăng
+số chi tiết nối và số vùng tiếp xúc, kéo theo khả năng tăng ứng suất cục bộ tại gối nối.
+
+http://jst.tnu.edu.vn                            111                             Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                           231(10): 106 - 113
+
+
+
+
+                 Hình 9. Kết quả chuyển vị và ứng suất đối với các cấu hình tay hexacopter
+                           Bảng 6. So sánh hai phương án cánh tay hexacopter
+    Thông số            Không gập      Có khớp gập        Chênh lệch                Diễn giải
+ Chuyển vị tổng          0,90084         0,88570           -1,68%      Khác biệt nhỏ, ít ảnh hưởng đến
+ (mm)                                                                  vận hành
+ Ứng suất tổng              8,53           13,592          +37,24%     Khớp gập làm tăng tập trung ứng
+ (MPa)                                                                 suất tại vùng liên kết
+   Kết quả trong Bảng 6 cho thấy chuyển vị của hai phương án gần như tương đương, trong khi
+ứng suất tổng của phương án có khớp gập tăng đáng kể do xuất hiện thêm vùng nối cứng – mềm
+(Hình 9). Nếu xét đồng thời cả khối lượng và ứng suất, phương án không gập cho hiệu quả kết
+cấu tốt hơn. Tuy vậy, nếu yêu cầu khai thác bắt buộc phải gập gọn, cần xem bài toán này như một
+bài toán thiết kế đa mục tiêu, trong đó lợi ích công năng được đánh đổi bằng sự gia tăng ứng suất
+và khối lượng phụ trợ.
+3.5. Đánh giá tổng hợp và khuyến nghị thiết kế
+   Trong nghiên cứu này, bài toán được xem như tối thiểu hóa khối lượng với các ràng buộc về
+bền và độ cứng. Đối với quadcopter, lỗ elip là phương án phù hợp hơn lỗ chữ nhật vì cho phép
+giảm vật liệu nhưng vẫn hạn chế sự gia tăng ứng suất. Đối với hexacopter, phương án không gập
+cho hiệu quả kết cấu tốt hơn; trong khi đó, phương án có khớp gập cần tối ưu thêm vùng gối nối
+và đường truyền tải.
+   Kết quả cũng cho thấy việc đánh giá phương án không nên chỉ dựa trên ứng suất cực đại mà
+cần xét cả vị trí phát sinh ứng suất. Các vùng nguy hiểm chủ yếu tập trung tại đầu ngàm, lỗ bu
+lông và gối nối; do đó, việc tăng bán kính bo, cải thiện vùng kẹp và bố trí lại lỗ liên kết sẽ hiệu
+quả hơn so với tăng bề dày toàn bộ thân tay.
+3.6. Độ tin cậy của mô hình số và các giới hạn nghiên cứu
+   Độ tin cậy của mô hình số được đánh giá thông qua kiểm chứng quy trình mô hình hóa và
+khảo sát hội tụ lưới. Bài toán dầm công xôn chuẩn cho sai số nhỏ về cả chuyển vị và ứng suất,
+cho thấy quy trình thiết lập mô hình trong ANSYS là nhất quán và phù hợp cho phân tích. Bên
+cạnh đó, kết quả hội tụ lưới cho thấy ứng suất cực đại hội tụ ở mức lưới rất mịn với sai số dưới
+
+http://jst.tnu.edu.vn                               112                            Email: jst@tnu.edu.vn
+                 TNU Journal of Science and Technology                                231(10): 106 - 113
+
+2%, trong khi chuyển vị hội tụ sớm hơn. Do đó, mô hình đủ tin cậy để đánh giá tương đối các
+phương án hình học trong giai đoạn thiết kế sơ bộ.
+   Tuy nhiên, nghiên cứu vẫn còn một số giới hạn. Mô hình hiện mới xét bài toán tĩnh tuyến tính,
+chưa phản ánh dao động, tải chu kỳ và ảnh hưởng tiếp xúc chi tiết tại các vùng liên kết. Ngoài ra,
+chưa có kiểm chứng thực nghiệm trực tiếp nên các trị số tuyệt đối về ứng suất và chuyển vị chủ yếu
+có ý nghĩa hỗ trợ lựa chọn phương án thiết kế hơn là chứng nhận kết cấu cuối cùng [12], [13].
+4. Kết luận
+    Nghiên cứu đã phân tích kết cấu cánh tay drone cho hai cấu hình UAV đa cánh quạt bằng
+phương pháp phần tử hữu hạn. Với quadcopter dùng hợp kim AL7075-T6, mô hình cơ sở có ứng
+suất thấp hơn nhiều so với giới hạn chảy, cho thấy vẫn còn dư địa giảm khối lượng. Trong các
+phương án khảo sát, lỗ elip cho kết quả tốt hơn lỗ chữ nhật do làm tăng ứng suất ít hơn và giảm tập
+trung ứng suất tại biên lỗ. Với hexacopter dùng tay tre, phương án không gập cho hiệu quả kết cấu
+tốt hơn phương án có khớp gập do ứng suất nhỏ hơn trong khi chênh lệch chuyển vị không đáng kể.
+    Kết quả kiểm chứng mô hình và hội tụ lưới cho thấy phân tích phần tử hữu hạn là công cụ phù
+hợp để sàng lọc và lựa chọn phương án cánh tay drone ở giai đoạn thiết kế sơ bộ. Trong thời gian
+tới, các nghiên cứu của nhóm sẽ tập trung vào nghiên cứu thực nghiệm, phân tích dao động và
+đánh giá bền mỏi để hoàn thiện cơ sở thiết kế.
+                               TÀI LIỆU THAM KHẢO/ REFERENCES
+[1] P. Liu, Y. N. Huang, A. Y. Chen, and J. Y. Han, ―A review of rotorcraft unmanned aerial vehicle (UAV)
+     developments and applications in civil engineering,‖ Smart Structures and Systems, vol. 13, no. 6, pp. 1065-
+     1094, 2014, doi: 10.12989/sss.2014.13.6.1065.
+[2] M. F. Ahmed, M. N. Zafar, and J. C. Mohanta, ―Modeling and Analysis of Quadcopter F450 Frame,‖ in
+     Proc. International Conference on Contemporary Computing and Applications (IC3A), Lucknow, India,
+     2020, pp. 196-201, doi: 10.1109/IC3A48958.2020.233296.
+[3] R. Singh, R. Kumar, A. Mishra, and A. Agarwal, ―Structural Analysis of Quadcopter Frame,‖ Materials
+     Today: Proceedings, vol. 22, pp. 3320-3329, 2020, doi: 10.1016/j.matpr.2020.03.295.
+[4] F. Ahmad, P. Kumar, P. P. Patil, et al., ―FEA based frequency analysis of unmanned aerial vehicle (UAV),‖
+     Materials Today: Proceedings, vol. 44, pp. 1906-1912, 2021, doi: 10.1016/j.matpr.2020.12.740.
+[5] F. Ahmad, P. Kumar, and P. P. Patil, ―Vibration characteristics based pre-stress analysis of a quadcopter’s
+     body frame,‖ Materials Today: Proceedings, vol. 46, pp. 10329-10333, 2021, doi:
+     10.1016/j.matpr.2020.12.458.
+[6] L. A. Al-Haddad, A. A. Jaber, et al., ―Quadcopter Unmanned Aerial Vehicle Structural Design Using an
+     Integrated Approach of Topology Optimization and Additive Manufacturing,‖ Designs, vol. 8, no. 3, 2024,
+     doi: 10.3390/designs8030058.
+[7] M. Darsin, W. J. Pamungkas, S. N. H. Syuhri, et al., ―Advanced optimization of drone frame design through
+     the application of generative design techniques and 3D printing technology,‖ Journal of Mechanical Science
+     and Technology, vol. 39, pp. 119-128, 2025.
+[8] S. Brischetto and R. Torre, ―Preliminary Finite Element Analysis and Flight Simulations of a Modular Drone
+     Built through Fused Filament Fabrication,‖ Journal of Composites Science, vol. 5, 2021, doi:
+     10.3390/jcs5110293.
+[9] V. C. Nguyen, Structural Analysis Using the Finite Element Method, Construction Publishing House, (in
+     Vietnamese), Hanoi, 2005.
+[10] H. Q. Nguyen, T. N. Luong, and H. D. Do, ―Research on optimal calculation of quadcopter frame
+     structure,‖ TNU Journal of Science and Technology, vol. 230, no. 02, pp. 80-87, 2025.
+[11] ANSYS, Inc., ―Structural Analysis Guide,‖ Release 2025 R2, 2025. [Online]. Available:
+     https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/pdf/ANSYS_Mechanical_APDL_Structura
+     l_Analysis_Guide.pdf. [Accessed May 15, 2026].
+[12] D. S. Sagar, R. A. Kapil, and B. K. Pravin, ―Computer aided modeling and finite element analysis of 3-D
+     printed drone,‖ Materials Today: Proceedings, vol. 47, pp. 3375-3379, 2021, doi:
+     10.1016/j.matpr.2021.07.162.
+[13] F. Kateb, A. Haseeb, et al., ―Drone Frame Optimization via Simulation and 3D Printing,‖ Computers, vol.
+     14, no. 8, 2025, doi: 10.3390/computers14080328.
+
+
+http://jst.tnu.edu.vn                                113                                 Email: jst@tnu.edu.vn
+

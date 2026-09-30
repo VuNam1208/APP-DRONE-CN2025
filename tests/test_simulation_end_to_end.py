@@ -115,6 +115,24 @@ class OfflineSimulationEndToEndTests(unittest.TestCase):
         self.assertEqual(controller.simulation_time_s, 0.0)
         self.assertFalse(controller.snapshot()["failure_triggered"])
 
+    def test_all_uavs_depart_from_and_return_to_shared_home(self):
+        controller = self.controller(strategy="Proposed")
+        homes = {drone.home for drone in controller.drones.values()}
+        self.assertEqual(len(homes), 1)
+        home = next(iter(homes))
+        self.assertTrue(all(drone.position == home for drone in controller.drones.values()))
+        self.assertTrue(
+            all(state["phase"] == "TRANSIT" for state in controller.snapshot()["drones"].values())
+        )
+
+        self.run_to_finish(controller)
+        for drone_id, drone in controller.drones.items():
+            if drone_id == controller.failed_uav:
+                self.assertEqual(drone.status, DroneStatus.FAILED)
+            else:
+                self.assertEqual(drone.position, home)
+                self.assertEqual(controller.snapshot()["drones"][drone_id]["phase"], "HOME")
+
     def test_missing_mission_is_reported(self):
         os.remove(os.path.join(self.mission_dir, "points4.plan"))
         with self.assertRaises(FileNotFoundError):

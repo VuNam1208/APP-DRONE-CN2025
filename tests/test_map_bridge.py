@@ -3,7 +3,7 @@ import unittest
 
 from PyQt5.QtCore import QCoreApplication
 
-from integrated_map import MapBridge
+from integrated_map import MapBridge, integrated_map_html
 
 
 class MapBridgeSimulationTests(unittest.TestCase):
@@ -49,6 +49,34 @@ class MapBridgeSimulationTests(unittest.TestCase):
     def test_rejects_unknown_route_phase(self):
         with self.assertRaises(ValueError):
             self.bridge.setSimulationRoutes({}, "other")
+
+    def test_trail_points_are_sent_incrementally(self):
+        self.bridge.notifyMapReady()
+        self.bridge.appendSimulationTrail(2, (21.0, 105.0))
+
+        command = json.loads(self.commands[-1])
+        self.assertEqual(command["action"], "append_trail")
+        self.assertEqual(command["drone_id"], 2)
+        self.assertEqual(command["position"], [21.0, 105.0])
+
+    def test_replan_removes_obsolete_future_route_layers(self):
+        html = integrated_map_html()
+        self.assertIn("if (phase === 'replan')", html)
+        self.assertIn("simulationLayers.initial.clearLayers()", html)
+        self.assertIn("simulationLayers.failed.clearLayers()", html)
+        self.assertIn("simulationLayers.flown.clearLayers()", html)
+        self.assertIn("simulationTrailEnabled = false", html)
+        self.assertIn("drawSimulationCoverageBoundary(routes)", html)
+        self.assertIn("function simulationCoverageRoute(route)", html)
+        self.assertIn("simulationCoverageRoute(rawRoute)", html)
+        self.assertIn("phase === 'initial' ? simulationCoverageRoute(route) : route", html)
+        self.assertIn("splitByLatitude", html)
+        self.assertIn("zones[index - 1].centerLat + item.centerLat", html)
+        self.assertIn("simulationCoverageLayer.clearLayers()", html)
+
+        self.assertIn("VÙNG UAV", html)
+        self.assertIn("L.polygon(boundaryBounds", html)
+        self.assertIn("KHU VỰC QUÉT", html)
 
 
 if __name__ == "__main__":

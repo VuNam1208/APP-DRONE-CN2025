@@ -1,0 +1,365 @@
+
+START pid=17548 at 2026-09-22T10:18:07.651398
+Windows fatal exception: access violation
+
+Thread 0x00002038 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 144 in _poll
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 69 in select
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 196 in run
+
+Thread 0x000017ec (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x0000384c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00000504 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00003f10 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00003938 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\main.py", line 2396 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=17624 at 2026-09-22T10:22:06.611383
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-22T10:23:36.985100
+
+START pid=18520 at 2026-09-22T10:29:32.920127
+Windows fatal exception: access violation
+
+Thread 0x00000a10 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 144 in _poll
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 69 in select
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 196 in run
+
+Thread 0x000023b4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00001d24 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004380 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004e88 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00004ba4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\main.py", line 2399 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=13872 at 2026-09-22T10:35:08.107476
+Windows fatal exception: access violation
+
+Thread 0x0000385c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004004 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004c8c (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00003e9c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00000ab4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\main.py", line 2399 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=8528 at 2026-09-22T10:51:38.958425
+Windows fatal exception: access violation
+
+Thread 0x000042d0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x0000168c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004a00 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00003f08 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00003f8c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025/main.py", line 2469 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=19784 at 2026-09-22T10:54:24.195073
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-22T11:00:06.512578
+
+START pid=2016 at 2026-09-22T11:00:31.388991
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-22T11:14:28.209825
+
+START pid=19352 at 2026-09-24T14:37:38.632315
+Windows fatal exception: access violation
+
+Thread 0x000035b0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004a40 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00003c64 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00004be0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x000060a8 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025/main.py", line 2537 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=2700 at 2026-09-29T14:22:15.633794
+Windows fatal exception: access violation
+
+Current thread 0x00006eb4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\main.py", line 2544 in <module>
+
+START pid=3532 at 2026-09-29T14:34:06.978268
+Windows fatal exception: access violation
+
+Thread 0x00004388 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x000020cc (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x000035d0 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x000072c4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00004ec8 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025/main.py", line 2544 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=20988 at 2026-09-29T14:40:26.811755
+Windows fatal exception: access violation
+
+Thread 0x00005290 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 326 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x0000648c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 607 in wait
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 280 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00001180 (most recent call first):
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 227 in _read_line
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 245 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Thread 0x00001f50 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 324 in wait
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\queue.py", line 180 in get
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_comm.py", line 390 in _on_run
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_daemon_thread.py", line 53 in run
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 1016 in _bootstrap_inner
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\threading.py", line 973 in _bootstrap
+
+Current thread 0x00001f5c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025/main.py", line 2544 in <module>
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118 in _run_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127 in _run_module_code
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310 in run_path
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 361 in run_file
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy/..\debugpy\server\cli.py", line 542 in main
+  File "c:\Users\HP\.vscode\extensions\ms-python.debugpy-2026.6.0-win32-x64\bundled\libs\debugpy\__main__.py", line 71 in <module>
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86 in _run_code
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196 in _run_module_as_main
+
+START pid=15520 at 2026-09-30T00:26:53.786077
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-30T15:38:03.932184
+
+START pid=25272 at 2026-09-30T15:38:42.328102
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-30T16:36:31.639381
+
+START pid=29000 at 2026-09-30T16:43:08.677307
+ABOUT_TO_QUIT
+EVENT_LOOP_ENDED at 2026-09-30T16:48:42.272000
+
+START pid=28284 at 2026-09-30T16:53:10.766012

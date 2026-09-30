@@ -220,17 +220,143 @@ def count_conflicts(
             a_id, b_id = ids[i], ids[j]
             if abs(altitudes.get(a_id, 0.0) - altitudes.get(b_id, 0.0)) >= alt_clearance_m:
                 continue
-            for t_a, p_a in sampled[a_id]:
-                for t_b, p_b in sampled[b_id]:
-                    if abs(t_a - t_b) > sample_dt:
-                        continue
-                    if haversine_m(p_a[0], p_a[1], p_b[0], p_b[1]) < d_safe:
-                        conflicts += 1
+            samples_a = sampled[a_id]
+            samples_b = sampled[b_id]
+            b_start = 0
+            pair_conflict = False
+            for t_a, p_a in samples_a:
+                while (
+                    b_start < len(samples_b)
+                    and samples_b[b_start][0] < t_a - sample_dt
+                ):
+                    b_start += 1
+                b_index = b_start
+                while (
+                    b_index < len(samples_b)
+                    and samples_b[b_index][0] <= t_a + sample_dt
+                ):
+                    _, p_b = samples_b[b_index]
+                    if haversine_m(
+                        p_a[0], p_a[1], p_b[0], p_b[1]
+                    ) < d_safe:
+                        pair_conflict = True
                         break
-                else:
-                    continue
-                break
+                    b_index += 1
+                if pair_conflict:
+                    conflicts += 1
+                    break
     return conflicts
+
+
+def count_conflicts_continuous(
+    routes: Dict[int, Sequence[Point]],
+    altitudes: Dict[int, float],
+    speeds: Dict[int, float],
+    delays: Dict[int, float],
+    d_safe: float,
+    alt_clearance_m: float = 4.0,
+) -> int:
+    """Independently count conflicts by continuous closest approach.
+
+    Unlike :func:`count_conflicts`, this evaluator does not sample positions in
+    time. It analytically minimizes pairwise horizontal distance over the
+    overlapping intervals of constant-velocity polyline legs. It is intended
+    for offline validation, not CAA decisions.
+    """
+    all_points = [point for route in routes.values() for point in route]
+    if not all_points:
+        return 0
+    lat0 = math.radians(sum(point[0] for point in all_points) / len(all_points))
+    earth_radius_m = 6371000.0
+
+    def xy(point: Point) -> Tuple[float, float]:
+        return (
+            earth_radius_m * math.radians(point[1]) * math.cos(lat0),
+            earth_radius_m * math.radians(point[0]),
+        )
+
+    timed: Dict[int, List[Tuple[float, float, float, float, float, float]]] = {}
+    for drone_id, route in routes.items():
+        speed = float(speeds.get(drone_id, 2.0))
+        if speed <= 0.0:
+            timed[drone_id] = []
+            continue
+        now = float(delays.get(drone_id, 0.0))
+        legs = []
+        for start, end in zip(route, route[1:]):
+            x0, y0 = xy(start)
+            x1, y1 = xy(end)
+            length = math.hypot(x1 - x0, y1 - y0)
+            if length < 1e-6:
+                continue
+            duration = length / speed
+            legs.append((now, now + duration, x0, y0,
+                         (x1 - x0) / duration, (y1 - y0) / duration))
+            now += duration
+        timed[drone_id] = legs
+
+    conflicts = 0
+    ids = list(routes)
+    threshold_sq = float(d_safe) ** 2
+    for left_index, left_id in enumerate(ids):
+        for right_id in ids[left_index + 1:]:
+            if abs(altitudes.get(left_id, 0.0) - altitudes.get(right_id, 0.0)) >= alt_clearance_m:
+                continue
+            left_legs = timed[left_id]
+            right_legs = timed[right_id]
+            i = j = 0
+            pair_conflict = False
+            while i < len(left_legs) and j < len(right_legs):
+                a = left_legs[i]
+                b = right_legs[j]
+                overlap_start = max(a[0], b[0])
+                overlap_end = min(a[1], b[1])
+                if overlap_start <= overlap_end:
+                    ax = a[2] + a[4] * (overlap_start - a[0])
+                    ay = a[3] + a[5] * (overlap_start - a[0])
+                    bx = b[2] + b[4] * (overlap_start - b[0])
+                    by = b[3] + b[5] * (overlap_start - b[0])
+                    rx, ry = ax - bx, ay - by
+                    vx, vy = a[4] - b[4], a[5] - b[5]
+                    duration = overlap_end - overlap_start
+                    speed_sq = vx * vx + vy * vy
+                    closest_t = 0.0 if speed_sq < 1e-12 else max(
+                        0.0, min(duration, -(rx * vx + ry * vy) / speed_sq)
+                    )
+                    dx = rx + vx * closest_t
+                    dy = ry + vy * closest_t
+                    if dx * dx + dy * dy < threshold_sq:
+                        pair_conflict = True
+                        break
+                if a[1] <= b[1]:
+                    i += 1
+                else:
+                    j += 1
+            if pair_conflict:
+                conflicts += 1
+    return conflicts
+
+
+def prepend_route_starts(
+    routes: Dict[int, Sequence[Point]],
+    starts: Optional[Dict[int, Point]] = None,
+    threshold_m: float = 0.5,
+) -> Dict[int, List[Point]]:
+    """Include the current-position-to-first-waypoint transit in predictions."""
+    starts = starts or {}
+    operational: Dict[int, List[Point]] = {}
+    for drone_id, route in routes.items():
+        points = list(route)
+        start = starts.get(drone_id)
+        if start is not None and (
+            not points
+            or haversine_m(start[0], start[1], points[0][0], points[0][1])
+            > threshold_m
+        ):
+            points.insert(0, start)
+        if points:
+            operational[drone_id] = points
+    return operational
 
 
 def apply_collision_avoidance(
@@ -242,26 +368,39 @@ def apply_collision_avoidance(
     delta_h: float,
     tau0: float = 2.0,
     max_delay_iters: int = 4,
+    start_positions: Optional[Dict[int, Point]] = None,
+    use_altitude: bool = True,
+    use_delay: bool = True,
 ) -> Tuple[Dict[int, List[Point]], Dict[int, float], Dict[int, float]]:
     """Return routes, altitudes, start_delays after heuristic conflict resolution.
 
     Prefer altitude + time separation. Do NOT laterally shift coverage waypoints.
-    Vertical clearance used in conflict checks is max(1, Δh - 1) m.
+    Vertical clearance used in conflict checks is max(1, Δh - 1) m. When
+    altitude separation is enabled, all ranked layers share one reference
+    altitude so heterogeneous current altitudes cannot collapse two layers.
     """
     drone_ids = sorted(routes.keys(), key=lambda i: battery.get(i, 0.0), reverse=True)
     altitudes = {i: float(base_altitudes.get(i, 10.0)) for i in drone_ids}
     delays = {i: 0.0 for i in drone_ids}
     adjusted = {i: list(routes[i]) for i in drone_ids}
     alt_clearance = max(1.0, float(delta_h) - 1.0)
+    reference_altitude = max(altitudes.values(), default=10.0)
 
     for rank, drone_id in enumerate(drone_ids):
-        altitudes[drone_id] = base_altitudes.get(drone_id, 10.0) + rank * delta_h
-        delays[drone_id] = rank * float(tau0)
+        if use_altitude:
+            altitudes[drone_id] = reference_altitude + rank * delta_h
+        if use_delay:
+            delays[drone_id] = rank * float(tau0)
 
     # If prediction still conflicts, increase time separation (max max_delay_iters).
-    for _ in range(max_delay_iters):
+    for _ in range(max_delay_iters if use_delay else 0):
         if count_conflicts(
-            adjusted, altitudes, speeds, delays, d_safe, alt_clearance_m=alt_clearance
+            prepend_route_starts(adjusted, start_positions),
+            altitudes,
+            speeds,
+            delays,
+            d_safe,
+            alt_clearance_m=alt_clearance,
         ) == 0:
             break
         for rank, drone_id in enumerate(drone_ids):
@@ -473,6 +612,11 @@ def serpentine_in_bbox(
     elif abs(rows[-1] - max_lat) > dlat * 0.25:
         rows.append(max_lat)
 
+    # Enter from the nearest north/south edge to avoid long diagonal transit
+    # legs crossing neighboring coverage strips.
+    if start is not None and abs(start[0] - max_lat) < abs(start[0] - min_lat):
+        rows.reverse()
+
     # Choose whether first row goes west→east or east→west based on start lon.
     go_east = True
     if start is not None:
@@ -541,14 +685,20 @@ def build_serpentine_remap_routes(
 
     # Assign west→east by current longitude.
     ordered_uavs = sorted(candidates, key=lambda i: (drone_positions[i][1], i))
-    groups = split_points_lon_groups(pool_points, len(ordered_uavs))
+    # Partition one common footprint. Building/padding a bbox per point group
+    # makes adjacent bboxes overlap and produces coincident replan legs.
+    strips = split_bbox_lon_strips(bounding_box(pool_points), len(ordered_uavs))
     routes: Dict[int, List[Point]] = {}
-    for drone_id, group in zip(ordered_uavs, groups):
-        if not group:
-            continue
-        bbox = pad_bbox(bounding_box(group), pad_m=max(0.5, spacing_m * 0.1))
+    for drone_id, bbox in zip(ordered_uavs, strips):
+        min_lat, max_lat, min_lon, max_lon = bbox
+        mid_lat = (min_lat + max_lat) / 2.0
+        half_spacing_lon = _meters_to_dlon(spacing_m / 2.0, mid_lat)
+        if max_lon - min_lon > 2.0 * half_spacing_lon:
+            min_lon += half_spacing_lon
+            max_lon -= half_spacing_lon
+        inset_bbox = (min_lat, max_lat, min_lon, max_lon)
         start = drone_positions.get(drone_id)
-        route = serpentine_in_bbox(bbox, spacing_m, start=start)
+        route = serpentine_in_bbox(inset_bbox, spacing_m, start=start)
         if start is not None and route:
             if haversine_m(start[0], start[1], route[0][0], route[0][1]) < 1.0:
                 route = route[1:] or route
@@ -569,6 +719,7 @@ class ReplanConfig:
     speed_mps: float = 2.0  # nominal speed for conflict prediction
     max_delay_iters: int = 4  # CAA delay-increase loops
     apply_caa: bool = True  # False = B1 remap without altitude/time separation
+    caa_mode: str = "both"  # both, altitude, or delay (used by ablation runs)
     write_plans: bool = True  # False = dry-run for offline experiments
     # "serpentine": remap all remaining coverage via bbox strips + lawnmower.
     # "waypoints": legacy redistribute unfinished WPs only.
@@ -621,6 +772,11 @@ class ReplanCoordinator:
         self._last_replan_s = 0.0
         self._replan_in_progress = False
         self.failed_history: List[int] = []
+        self.remaining_waypoint_overrides: Dict[int, List[Point]] = {}
+
+    def set_remaining_waypoints(self, index: int, points: Sequence[Point]) -> None:
+        """Provide an exact unfinished suffix when mission progress is known."""
+        self.remaining_waypoint_overrides[int(index)] = list(points)
 
     def set_enabled(self, enabled: bool) -> None:
         self.config.enabled = enabled
@@ -707,6 +863,8 @@ class ReplanCoordinator:
         return failed
 
     def _collect_remaining_for_index(self, index: int) -> List[Point]:
+        if index in self.remaining_waypoint_overrides:
+            return list(self.remaining_waypoint_overrides[index])
         waypoints = load_waypoints_from_plan(self.plan_path(index))
         state = self.states[index]
         position = (state.lat, state.lon) if state.lat is not None and state.lon is not None else None
@@ -891,8 +1049,15 @@ class ReplanCoordinator:
             battery[drone_id] = self.states[drone_id].battery_percent
 
         alt_clearance = max(1.0, float(self.config.delta_h_m) - 1.0)
+        start_positions = {
+            drone_id: (self.states[drone_id].lat, self.states[drone_id].lon)
+            for drone_id in assigned
+            if self.states[drone_id].lat is not None
+            and self.states[drone_id].lon is not None
+        }
+        prediction_routes = prepend_route_starts(assigned, start_positions)
         conflicts_before = count_conflicts(
-            assigned,
+            prediction_routes,
             base_alts,
             speeds,
             {i: 0.0 for i in assigned},
@@ -909,6 +1074,9 @@ class ReplanCoordinator:
                 self.config.delta_h_m,
                 tau0=self.config.tau0_s,
                 max_delay_iters=self.config.max_delay_iters,
+                start_positions=start_positions,
+                use_altitude=self.config.caa_mode in ("both", "altitude"),
+                use_delay=self.config.caa_mode in ("both", "delay"),
             )
         else:
             # B1: remap geometry only — same base altitude, no start stagger.
@@ -916,7 +1084,7 @@ class ReplanCoordinator:
             altitudes = dict(base_alts)
             delays = {i: 0.0 for i in assigned}
         conflicts_after = count_conflicts(
-            routes,
+            prepend_route_starts(routes, start_positions),
             altitudes,
             speeds,
             delays,

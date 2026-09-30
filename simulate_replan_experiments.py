@@ -19,7 +19,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
+import math
 import os
+import statistics
+import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -28,8 +34,11 @@ from replan_coordinator import (
     ReplanConfig,
     ReplanCoordinator,
     count_conflicts,
+    count_conflicts_continuous,
     estimate_grid_spacing_m,
     load_waypoints_from_plan,
+    path_length_m,
+    prepend_route_starts,
     remaining_waypoints,
 )
 from simulation_metrics import (
@@ -39,6 +48,7 @@ from simulation_metrics import (
     residual_pool,
     unique_window,
 )
+from simulation_missions import prepare_adjacent_sim_missions
 
 Point = Tuple[float, float]
 
@@ -50,6 +60,7 @@ class ScenarioSetup:
     progress: float
     battery: Dict[int, float]
     note: str
+    failure_type: str = "lost_link"
 
 
 def load_plans(mission_dir: str, indices: Sequence[int]) -> Dict[int, List[Point]]:
@@ -114,8 +125,13 @@ def run_strategy(
         ReplanConfig(
             enabled=True,
             monitor_indices=tuple(uav_ids),
-            remap_mode="serpentine",
-            apply_caa=(strategy == "Proposed"),
+            remap_mode="waypoints" if strategy == "Greedy" else "serpentine",
+            apply_caa=(strategy in ("Altitude-only", "Delay-only", "Proposed")),
+            caa_mode={
+                "Altitude-only": "altitude",
+                "Delay-only": "delay",
+                "Proposed": "both",
+            }.get(strategy, "both"),
             write_plans=False,
             speed_mps=speed_mps,
             d_safe_m=d_safe_m,
@@ -157,21 +173,35 @@ def run_strategy(
         n_c = int(result.conflicts_after)
 
     # T_react: S1 includes lost-link timeout; others are decision latency only.
-    if scenario.name == "S1":
-        t_react_s = round(coord.config.lost_timeout_s + t_compute, 2)
-    else:
-        t_react_s = round(max(t_compute, 0.01), 2)
+    t_detect_s = coord.config.lost_timeout_s if scenario.failure_type == "lost_link" else 0.0
+    t_react_s = t_detect_s + t_compute
 
     eta = coverage_ratio(targets, routes, cover_radius_m)
-    t_fin = finish_time_s(routes, delays, speed_mps)
-    l_max = max_path_m(routes)
+    operational_routes = prepend_route_starts(routes, positions)
+    n_c_independent = count_conflicts_continuous(
+        operational_routes,
+        altitudes,
+        {i: speed_mps for i in operational_routes},
+        delays,
+        d_safe_m,
+        alt_clearance_m=4.0,
+    )
+    t_fin = finish_time_s(operational_routes, delays, speed_mps)
+    l_max = max_path_m(operational_routes)
+    route_lengths = [path_length_m(route) for route in operational_routes.values()]
+    l_mean = statistics.fmean(route_lengths) if route_lengths else 0.0
 
     return {
         "eta_pct": round(eta, 1),
         "t_fin_s": round(t_fin, 1),
         "l_max_m": round(l_max, 1),
+        "l_mean_m": round(l_mean, 1),
+        "load_ratio": round(l_max / l_mean, 3) if l_mean > 0.0 else 0.0,
         "n_c": float(n_c),
+        "n_c_independent": float(n_c_independent),
         "t_react_s": round(t_react_s, 3),
+        "t_detect_s": round(t_detect_s, 3),
+        "t_compute_s": t_compute,
         "pool_pts": float(len(targets)),
         "route_pts": float(sum(len(r) for r in routes.values())),
         "alive": float(len(routes)),
@@ -194,18 +224,20 @@ def build_scenarios(progress: float) -> List[ScenarioSetup]:
             progress=progress,
             battery={1: 20, 2: 85, 3: 70, 4: 60},
             note="low-battery fail while in-mission",
+            failure_type="low_battery",
         ),
         ScenarioSetup(
             name="S3",
             failed=1,
             progress=max(0.15, progress - 0.15),
             battery={1: 72, 2: 88, 3: 78, 4: 68},
+            failure_type="early_failure",
             note="earlier fail → denser residual / higher conflict risk",
         ),
     ]
 
 
-def main() -> None:
+def legacy_main() -> None:
     parser = argparse.ArgumentParser(description="Offline replan experiment harness")
     parser.add_argument(
         "--mission-dir",
@@ -329,6 +361,254 @@ def main() -> None:
         )
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
+
+
+def _mission_hash(mission_dir: str, indices: Sequence[int]) -> str:
+    digest = hashlib.sha256()
+    for drone_id in indices:
+        path = os.path.join(mission_dir, f"points{drone_id}.plan")
+        digest.update(f"points{drone_id}.plan\0".encode("ascii"))
+        with open(path, "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()[:16]
+
+
+def _code_hash(root: str) -> str:
+    digest = hashlib.sha256()
+    for name in (
+        "replan_coordinator.py",
+        "simulation_metrics.py",
+        "simulation_missions.py",
+        "simulate_replan_experiments.py",
+    ):
+        digest.update(f"{name}\0".encode("ascii"))
+        with open(os.path.join(root, name), "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()[:16]
+
+
+def _git_revision() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+def _write_csv(path: str, rows: List[Dict[str, object]]) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _summarize(raw_rows: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    groups: Dict[Tuple[object, ...], List[Dict[str, object]]] = {}
+    keys = ("scenario", "strategy", "failed_uav", "failure_progress")
+    for row in raw_rows:
+        groups.setdefault(tuple(row[key] for key in keys), []).append(row)
+    summary = []
+    for group_key, rows in groups.items():
+        compute = [float(row["t_compute_s"]) for row in rows]
+        react = [float(row["t_react_s"]) for row in rows]
+        first = rows[0]
+        ordered_compute = sorted(compute)
+        p95_index = max(0, math.ceil(0.95 * len(ordered_compute)) - 1)
+        summary.append(
+            {
+                **dict(zip(keys, group_key)),
+                "runs": len(rows),
+                "eta_pct": first["eta_pct"],
+                "t_fin_s": first["t_fin_s"],
+                "l_max_m": first["l_max_m"],
+                "l_mean_m": first.get("l_mean_m", 0.0),
+                "load_ratio": first.get("load_ratio", 0.0),
+                "n_c": first["n_c"],
+                "n_c_independent": first.get("n_c_independent", first["n_c"]),
+                "t_detect_s": first["t_detect_s"],
+                "t_compute_mean_s": round(statistics.fmean(compute), 6),
+                "t_compute_median_s": round(statistics.median(compute), 6),
+                "t_compute_std_s": round(statistics.stdev(compute), 6) if len(compute) > 1 else 0.0,
+                "t_compute_min_s": round(min(compute), 6),
+                "t_compute_max_s": round(max(compute), 6),
+                "t_compute_p95_s": round(ordered_compute[p95_index], 6),
+                "t_react_mean_s": round(statistics.fmean(react), 6),
+                "pool_pts": first["pool_pts"],
+                "route_pts": first["route_pts"],
+                "mission_hash": first["mission_hash"],
+                "code_hash": first["code_hash"],
+                "git_revision": first["git_revision"],
+            }
+        )
+    return summary
+
+
+def _write_latex(path: str, rows: List[Dict[str, object]]) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    lines = [
+        "% Generated by simulate_replan_experiments.py; do not edit manually.",
+        "\\begin{tabular}{@{}llrrrrr@{}}",
+        "\\toprule",
+        "Scenario & Strategy & $\\eta$ (\\%) & $T_{fin}$ (s) & $L_{max}$ (m) & $N_c$ & $T_{react}$ (s) \\\\",
+        "\\midrule",
+    ]
+    for row in rows:
+        lines.append(
+            f"{row['scenario']} & {row['strategy']} & {float(row['eta_pct']):.1f} & "
+            f"{float(row['t_fin_s']):.1f} & {float(row['l_max_m']):.1f} & "
+            f"{int(row['n_c'])} & {float(row['t_react_mean_s']):.3f} \\\\"
+        )
+    lines.extend(["\\bottomrule", "\\end{tabular}", ""])
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("\n".join(lines))
+
+
+def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    root = os.path.dirname(os.path.abspath(__file__))
+    parser = argparse.ArgumentParser(description="Reproducible offline replan experiments")
+    parser.add_argument("--mission-dir", default=os.path.join(root, "mission"))
+    parser.add_argument(
+        "--mission-layout",
+        choices=("adjacent", "rotated", "elongated", "source"),
+        default="adjacent",
+    )
+    parser.add_argument("--progresses", default="0.40")
+    parser.add_argument("--failed-uavs", default="1")
+    parser.add_argument("--repeats", type=int, default=10)
+    parser.add_argument("--speed", type=float, default=2.0)
+    parser.add_argument("--d-safe", type=float, default=15.0)
+    parser.add_argument("--cover-radius", type=float, default=0.0)
+    parser.add_argument("--out-prefix", default=os.path.join(root, "results", "report_experiment"))
+    parser.add_argument(
+        "--strategies",
+        default="B0,B1,Proposed",
+        help="comma-separated: B0,Greedy,B1,Altitude-only,Delay-only,Proposed",
+    )
+    args = parser.parse_args()
+    if args.repeats < 1:
+        parser.error("--repeats must be at least 1")
+
+    mission_owner = None
+    mission_dir = args.mission_dir
+    if args.mission_layout != "source":
+        mission_owner, mission_dir = prepare_adjacent_sim_missions(
+            args.mission_dir, layout=args.mission_layout
+        )
+    indices = [1, 2, 3, 4]
+    try:
+        plans = load_plans(mission_dir, indices)
+        mission_hash = _mission_hash(mission_dir, indices)
+        code_hash = _code_hash(root)
+        revision = _git_revision()
+        progresses = [float(value) for value in args.progresses.split(",")]
+        failed_uavs = [int(value) for value in args.failed_uavs.split(",")]
+        strategies = [value.strip() for value in args.strategies.split(",") if value.strip()]
+        valid_strategies = {
+            "B0", "Greedy", "B1", "Altitude-only", "Delay-only", "Proposed"
+        }
+        unknown = set(strategies) - valid_strategies
+        if unknown:
+            parser.error(f"unknown strategies: {sorted(unknown)}")
+        raw_rows: List[Dict[str, object]] = []
+        run_id = 0
+        for progress in progresses:
+            probe_positions = {
+                drone_id: route[min(max(0, int(len(route) * progress) - 1), len(route) - 1)]
+                for drone_id, route in plans.items()
+            }
+            probe_pool = residual_pool(plans, probe_positions, 1, [2, 3, 4])
+            spacing = estimate_grid_spacing_m(probe_pool)
+            cover_radius = args.cover_radius or max(8.0, 0.6 * spacing)
+            for failed_uav in failed_uavs:
+                if failed_uav not in indices:
+                    parser.error(f"unknown failed UAV: {failed_uav}")
+                scenarios = build_scenarios(progress)
+                for scenario in scenarios:
+                    scenario.failed = failed_uav
+                    for strategy in strategies:
+                        if scenario.name == "S3" and strategy == "B0":
+                            continue
+                        for repeat in range(1, args.repeats + 1):
+                            run_id += 1
+                            metrics = run_strategy(
+                                strategy, mission_dir, plans, scenario,
+                                cover_radius, args.speed, args.d_safe,
+                            )
+                            raw_rows.append(
+                                {
+                                    "run_id": run_id,
+                                    "repeat": repeat,
+                                    "scenario": scenario.name,
+                                    "strategy": strategy,
+                                    "failed_uav": failed_uav,
+                                    "failure_type": scenario.failure_type,
+                                    "failure_progress": scenario.progress,
+                                    "speed_mps": args.speed,
+                                    "d_safe_m": args.d_safe,
+                                    "cover_radius_m": round(cover_radius, 3),
+                                    "uav_count": len(indices),
+                                    "eta_pct": metrics["eta_pct"],
+                                    "t_fin_s": metrics["t_fin_s"],
+                                    "l_max_m": metrics["l_max_m"],
+                                    "l_mean_m": metrics["l_mean_m"],
+                                    "load_ratio": metrics["load_ratio"],
+                                    "n_c": int(metrics["n_c"]),
+                                    "n_c_independent": int(metrics["n_c_independent"]),
+                                    "t_detect_s": metrics["t_detect_s"],
+                                    "t_compute_s": round(metrics["t_compute_s"], 9),
+                                    "t_react_s": round(metrics["t_detect_s"] + metrics["t_compute_s"], 9),
+                                    "pool_pts": int(metrics["pool_pts"]),
+                                    "route_pts": int(metrics["route_pts"]),
+                                    "mission_layout": args.mission_layout,
+                                    "mission_hash": mission_hash,
+                                    "code_hash": code_hash,
+                                    "git_revision": revision,
+                                    "status": "ok",
+                                }
+                            )
+        summary = _summarize(raw_rows)
+        raw_path = args.out_prefix + "_raw.csv"
+        summary_path = args.out_prefix + "_summary.csv"
+        latex_path = args.out_prefix + "_table.tex"
+        metadata_path = args.out_prefix + "_metadata.json"
+        _write_csv(raw_path, raw_rows)
+        _write_csv(summary_path, summary)
+        _write_latex(latex_path, summary)
+        with open(metadata_path, "w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "model": "offline point-kinematic simulation",
+                    "not_sitl": True,
+                    "mission_layout": args.mission_layout,
+                    "mission_hash": mission_hash,
+                    "code_hash": code_hash,
+                    "git_revision": revision,
+                    "repeats": args.repeats,
+                    "progresses": progresses,
+                    "failed_uavs": failed_uavs,
+                    "speed_mps": args.speed,
+                    "d_safe_m": args.d_safe,
+                    "raw_csv": os.path.basename(raw_path),
+                    "summary_csv": os.path.basename(summary_path),
+                },
+                handle,
+                ensure_ascii=False,
+                indent=2,
+            )
+        print(f"Completed {len(raw_rows)} runs; mission={mission_hash}; git={revision}")
+        print(f"Raw: {raw_path}")
+        print(f"Summary: {summary_path}")
+        print(f"LaTeX: {latex_path}")
+    finally:
+        if mission_owner is not None:
+            mission_owner.cleanup()
 
 
 if __name__ == "__main__":

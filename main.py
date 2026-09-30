@@ -9,9 +9,11 @@ ID_DRONE_PATH = os.path.join(BASE_DIR, "ID_drone.txt")
 ULTRALYTICS_CONFIG_DIR = os.path.join(BASE_DIR, ".ultralytics")
 os.makedirs(ULTRALYTICS_CONFIG_DIR, exist_ok=True)
 os.environ.setdefault("YOLO_CONFIG_DIR", ULTRALYTICS_CONFIG_DIR)
+os.environ.setdefault("QT_OPENGL", "software")
 os.environ.setdefault(
     "QTWEBENGINE_CHROMIUM_FLAGS",
-    "--disable-gpu-compositing --disable-background-timer-throttling --disable-renderer-backgrounding",
+    "--disable-gpu --disable-gpu-compositing "
+    "--disable-background-timer-throttling --disable-renderer-backgrounding",
 )
 from PyQt5 import QtCore, QtGui
 import numpy as np
@@ -36,15 +38,16 @@ from ui_interface import Ui_MainWindow
 from integrated_map import setup_integrated_map
 from replan_coordinator import ReplanConfig, ReplanCoordinator, haversine_m
 from simulation_controller import SimulationController, SimulationStatus
+from simulation_missions import prepare_adjacent_sim_missions
 from simulation_metrics import export_metrics_csv
 import asyncio, cv2
 from mavsdk import System
-from qasync import QEventLoop
 import subprocess
 import math
 import time
 import traceback
 import tempfile
+import faulthandler
 
 drone_1 = System(mavsdk_server_address="localhost", port=50060)
 drone_2 = System(mavsdk_server_address="localhost", port=50061)
@@ -56,6 +59,27 @@ drone_6 = System(mavsdk_server_address="localhost", port=50065)
 from datetime import datetime
 from queue import Queue
 from ultralytics import YOLO
+
+_ASYNCIO_TIMER = None
+
+
+def schedule_async(coroutine):
+    """Schedule a coroutine whether called from an asyncio or Qt callback."""
+    if _ASYNCIO_TIMER is not None and not _ASYNCIO_TIMER.isActive():
+        _ASYNCIO_TIMER.start()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+    return loop.create_task(coroutine)
+
+
+def pump_asyncio(loop):
+    """Run one non-blocking asyncio iteration from the Qt event loop."""
+    if loop.is_closed() or loop.is_running():
+        return
+    loop.call_soon(loop.stop)
+    loop.run_forever()
 
 class VideoThread1(QThread):
     change_pixmap_signal = pyqtSignal(QImage)
@@ -772,14 +796,31 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.drones = [drone_1, drone_2, drone_3, drone_4, drone_5, drone_6]
         self.setup_integrated_map()
+        self._map_recovery_attempts = 0
+        self._map_recovering = False
+        self._resume_sim_after_map = False
+        self._map_probe_pending = False
+        self._map_probe_started = 0.0
+        self._map_recovery_started = 0.0
+        self._map_health_started = time.monotonic()
+        self.map_bridge.mapReady.connect(self._on_map_ready)
         self.operation_mode = "LIVE"
         self.sim_controller = None
+        self.sim_mission_temp = None
         self.last_sim_metrics = None
         self.sim_trails = {}
         self.sim_trail_frame = 0
+        self._sim_last_map_update = 0.0
+        self._sim_last_trail_update = 0.0
         self.sim_timer = QTimer(self)
         self.sim_timer.setInterval(100)
         self.sim_timer.timeout.connect(self._simulation_tick)
+        self.map_health_timer = QTimer(self)
+        self.map_health_timer.setInterval(3000)
+        self.map_health_timer.timeout.connect(self._check_map_health)
+        # Do not poll QWebEngine with runJavaScript.  Repeated asynchronous
+        # probes can crash QtWebEngine natively on Windows after a few minutes.
+        # Renderer termination and mapReady already provide lifecycle signals.
         self._sim_last_tick = None
         self.setup_simulation_controls()
         self.ensure_data_dirs()
@@ -796,7 +837,7 @@ class MainWindow(QMainWindow):
         self.setup_replan_controls()
 
         self.wait_upload_misson = 0
-        self.ui.start.clicked.connect(lambda: asyncio.create_task(self.all()))
+        self.ui.start.clicked.connect(lambda: schedule_async(self.all()))
         """Window contain Video"""
 
 
@@ -828,8 +869,9 @@ class MainWindow(QMainWindow):
         self.bay06 = False
 
 
-        # Start async monitors on the first Qt tick, after qasync is running.
-        QTimer.singleShot(0, self.start_background_tasks)
+        # LIVE-only monitors are started lazily when a real UAV connection is
+        # requested.  Offline SIM must not open MAVSDK telemetry streams.
+        self._background_tasks = []
 
 
 
@@ -844,21 +886,21 @@ class MainWindow(QMainWindow):
 
 
         self.gripper_open = False
-        self.ui.gripper.clicked.connect(lambda: asyncio.create_task(self.toggle_gripper()))
+        self.ui.gripper.clicked.connect(lambda: schedule_async(self.toggle_gripper()))
 
-        self.ui.right6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="right")))
-        self.ui.left6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="left")))
-        self.ui.backward6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="backward")))
-        self.ui.forward6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="forward")))
-        self.ui.up6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="up")))
-        self.ui.down6.clicked.connect(lambda: asyncio.create_task(self.uav_process_goto_distance(distance = 1, direction="down")))
-        self.ui.Bay.clicked.connect(lambda: asyncio.create_task(self.bay6()))
+        self.ui.right6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="right")))
+        self.ui.left6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="left")))
+        self.ui.backward6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="backward")))
+        self.ui.forward6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="forward")))
+        self.ui.up6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="up")))
+        self.ui.down6.clicked.connect(lambda: schedule_async(self.uav_process_goto_distance(distance = 1, direction="down")))
+        self.ui.Bay.clicked.connect(lambda: schedule_async(self.bay6()))
         self.connect_drone_control_buttons()
 
         self.connect_mission_buttons()
 
 
-        self.ui.pushButton_3.clicked.connect(lambda: asyncio.create_task(self.detect_object()))
+        self.ui.pushButton_3.clicked.connect(lambda: schedule_async(self.detect_object()))
 
 
         self.connect_detection_buttons()
@@ -886,33 +928,33 @@ class MainWindow(QMainWindow):
 
         '''Control 6 drone'''
 
-        self.ui.connect_all.clicked.connect(lambda: asyncio.create_task(self.connect_6_drone()))
+        self.ui.connect_all.clicked.connect(lambda: schedule_async(self.connect_6_drone()))
 
 
-        self.ui.take_off_all.clicked.connect(lambda: asyncio.create_task(self.take_off_6_drone()))
+        self.ui.take_off_all.clicked.connect(lambda: schedule_async(self.take_off_6_drone()))
 
 
-        self.ui.arm_all.clicked.connect(lambda: asyncio.create_task(self.arm_6_drone()))
+        self.ui.arm_all.clicked.connect(lambda: schedule_async(self.arm_6_drone()))
 
 
-        self.ui.land_all.clicked.connect(lambda: asyncio.create_task(self.land_6_drone()))
+        self.ui.land_all.clicked.connect(lambda: schedule_async(self.land_6_drone()))
 
 
-        self.ui.RTL_all_2.clicked.connect(lambda: asyncio.create_task(self.RTL_ALL()))
+        self.ui.RTL_all_2.clicked.connect(lambda: schedule_async(self.RTL_ALL()))
 
 
-        self.ui.Load_MS_all.clicked.connect(lambda: asyncio.create_task(self.upload_ms_all()))
+        self.ui.Load_MS_all.clicked.connect(lambda: schedule_async(self.upload_ms_all()))
 
 
-        self.ui.mission_all.clicked.connect(lambda: asyncio.create_task(self.mission_all()))
-        self.ui.mission_all_2.clicked.connect(lambda: asyncio.create_task(self.mission_all()))
+        self.ui.mission_all.clicked.connect(lambda: schedule_async(self.mission_all()))
+        self.ui.mission_all_2.clicked.connect(lambda: schedule_async(self.mission_all()))
 
 
-        self.ui.goto_all.clicked.connect(lambda: asyncio.create_task(self.goto_all()))
+        self.ui.goto_all.clicked.connect(lambda: schedule_async(self.goto_all()))
 
 
-        self.ui.pause_all.clicked.connect(lambda: asyncio.create_task(self.pause_all()))
-        self.ui.pause_all_2.clicked.connect(lambda: asyncio.create_task(self.pause_all()))
+        self.ui.pause_all.clicked.connect(lambda: schedule_async(self.pause_all()))
+        self.ui.pause_all_2.clicked.connect(lambda: schedule_async(self.pause_all()))
 
 
 
@@ -1002,13 +1044,20 @@ class MainWindow(QMainWindow):
             print(f"QtWebEngine storage setup warning: {exc}", file=sys.stderr)
 
     def start_background_tasks(self):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError as exc:
-            print(f"Async monitor startup warning: {exc}", file=sys.stderr)
+        self._background_tasks = [
+            task for task in self._background_tasks if not task.done()
+        ]
+        if self._background_tasks or self.operation_mode != "LIVE":
             return
-        loop.create_task(self.start_check_detected_person())
-        loop.create_task(self.start_replan_monitor())
+        self._background_tasks = [
+            schedule_async(self.start_check_detected_person()),
+            schedule_async(self.start_replan_monitor()),
+        ]
+
+    def stop_background_tasks(self):
+        for task in self._background_tasks:
+            task.cancel()
+        self._background_tasks.clear()
 
     def configure_main_navigation(self):
         visible_pages = (
@@ -1073,6 +1122,111 @@ class MainWindow(QMainWindow):
 
     def setup_integrated_map(self):
         setup_integrated_map(self)
+
+    def _check_map_health(self):
+        """Legacy one-shot map probe; intentionally not scheduled periodically."""
+        if self.operation_mode != "SIM" or self.sim_controller is None:
+            return
+        if self._map_recovery_attempts > 3:
+            return
+        now = time.monotonic()
+        if not self.map_bridge._map_ready and not self._map_recovering:
+            if now - self._map_health_started < 12.0:
+                return
+            self.on_map_renderer_terminated("map load timeout", -1)
+            return
+        if self._map_recovering:
+            if now - self._map_recovery_started > 10.0:
+                self._map_recovering = False
+                self.on_map_renderer_terminated("restore timeout", -1)
+            return
+        if self._map_probe_pending:
+            if now - self._map_probe_started > 5.0:
+                self._map_probe_pending = False
+                self.on_map_renderer_terminated("healthcheck timeout", -1)
+            return
+        self._map_probe_pending = True
+        self._map_probe_started = now
+        self.ui.embedded_map_view.page().runJavaScript(
+            "Boolean(window.map && document.querySelector('.leaflet-container') "
+            "&& document.querySelector('.map-app'))",
+            self._on_map_health_result,
+        )
+
+    def _on_map_health_result(self, healthy):
+        if not self._map_probe_pending:
+            return
+        self._map_probe_pending = False
+        if not healthy and not self._map_recovering:
+            self.on_map_renderer_terminated("blank map", -1)
+
+    def on_map_renderer_terminated(self, status, exit_code):
+        print(
+            f"[MAP] renderer terminated: status={status}, exit={exit_code}",
+            file=sys.stderr,
+            flush=True,
+        )
+        if self._map_recovering:
+            self._map_recovering = False
+        self._map_recovery_attempts += 1
+        if self._map_recovery_attempts > 3:
+            if (
+                self.sim_controller is not None
+                and self.sim_controller.status == SimulationStatus.RUNNING
+            ):
+                self.toggle_simulation_pause()
+            self.sim_status_label.setText("Map renderer failed repeatedly; SIM paused")
+            return
+        self._map_recovering = True
+        self._map_recovery_started = time.monotonic()
+        self._map_probe_pending = False
+        was_running = (
+            self.sim_controller is not None
+            and self.sim_controller.status == SimulationStatus.RUNNING
+        )
+        self._resume_sim_after_map = self._resume_sim_after_map or was_running
+        if was_running:
+            self.toggle_simulation_pause()
+        QTimer.singleShot(300, self._restore_simulation_map)
+
+    def _restore_simulation_map(self):
+        from integrated_map import integrated_map_html
+
+        self.map_bridge._map_ready = False
+        self.map_bridge._simulation_queue.clear()
+        self.ui.embedded_map_view.setHtml(
+            integrated_map_html(), QtCore.QUrl("https://app-drone.local/")
+        )
+        if self.sim_controller is None:
+            return
+        self.map_bridge.clearSimulation()
+        self.map_bridge.setSimulationRoutes(
+            {i: drone.original_route for i, drone in self.sim_controller.drones.items()},
+            "initial",
+        )
+        self.map_bridge.setSimulationRoutes(self.sim_trails, "flown")
+        if self.sim_controller.snapshot()["failure_triggered"]:
+            failed_id = self.sim_controller.failed_uav
+            failed = self.sim_controller.drones[failed_id]
+            self.map_bridge.markFailedDrone(failed_id, failed.position)
+            remaining = [failed.position] + failed.original_route[failed.segment_index + 1 :]
+            self.map_bridge.setSimulationRoutes({failed_id: remaining}, "failed")
+            result = self.sim_controller.last_replan_result
+            if result is not None:
+                self.map_bridge.setSimulationRoutes(result.routes, "replan")
+        self.map_bridge.setSimulationPositions(self.sim_controller.snapshot()["drones"])
+        self.map_bridge.fitSimulationBounds()
+
+    def _on_map_ready(self):
+        self._map_recovery_attempts = 0
+        self._map_health_started = time.monotonic()
+        if not self._map_recovering:
+            return
+        self._map_recovering = False
+        if self._resume_sim_after_map and self.sim_controller is not None:
+            self.toggle_simulation_pause()
+        self._resume_sim_after_map = False
+        self.map_bridge.showSimulationEvent("Map restored")
 
     def setup_simulation_controls(self):
         panel = QFrame(self.ui.page_map)
@@ -1234,14 +1388,8 @@ class MainWindow(QMainWindow):
             "Offline simulation ready" if sim_enabled else "LIVE controls active"
         )
         if sim_enabled:
+            self.stop_background_tasks()
             self.ui.stackedWidget.setCurrentWidget(self.ui.page_map)
-
-    def _simulation_uav_ids(self):
-        ids = []
-        for index in range(1, 5):
-            if os.path.isfile(self.mission_plan_path(index)):
-                ids.append(index)
-        return tuple(ids)
 
     def start_offline_simulation(self):
         if self.operation_mode != "SIM":
@@ -1252,14 +1400,17 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            uav_ids = self._simulation_uav_ids()
+            self.sim_mission_temp, sim_mission_dir = prepare_adjacent_sim_missions(
+                MISSION_DIR
+            )
+            uav_ids = (1, 2, 3, 4)
             failed_uav = self.sim_uav_combo.currentIndex() + 1
             if failed_uav not in uav_ids:
                 raise FileNotFoundError(
                     f"Missing mission/points{failed_uav}.plan for failed UAV"
                 )
             self.sim_controller = SimulationController(
-                mission_dir=MISSION_DIR,
+                mission_dir=sim_mission_dir,
                 uav_ids=uav_ids,
                 speed_mps=self.sim_speed_spin.value(),
                 failed_uav=failed_uav,
@@ -1269,6 +1420,9 @@ class MainWindow(QMainWindow):
             )
         except Exception as exc:
             self.sim_controller = None
+            if self.sim_mission_temp is not None:
+                self.sim_mission_temp.cleanup()
+                self.sim_mission_temp = None
             QMessageBox.warning(self, "Offline SIM", str(exc))
             self.sim_status_label.setText(f"SIM setup failed: {exc}")
             return
@@ -1284,6 +1438,8 @@ class MainWindow(QMainWindow):
             if drone.position is not None
         }
         self.sim_trail_frame = 0
+        self._sim_last_map_update = 0.0
+        self._sim_last_trail_update = 0.0
         self.last_sim_metrics = None
         self.sim_metrics_label.setText("Results: running")
         self.sim_export_btn.setEnabled(False)
@@ -1296,6 +1452,8 @@ class MainWindow(QMainWindow):
             "initial",
         )
         self.map_bridge.setSimulationPositions(self.sim_controller.snapshot()["drones"])
+        for drone_id, trail in self.sim_trails.items():
+            self.map_bridge.appendSimulationTrail(drone_id, trail[0])
         self.map_bridge.fitSimulationBounds()
         self.sim_controller.start()
         self._set_sim_configuration_enabled(False)
@@ -1337,6 +1495,9 @@ class MainWindow(QMainWindow):
         if self.sim_controller is not None:
             self.sim_controller.reset()
         self.sim_controller = None
+        if self.sim_mission_temp is not None:
+            self.sim_mission_temp.cleanup()
+            self.sim_mission_temp = None
         self.last_sim_metrics = None
         self.sim_trails = {}
         self._sim_last_tick = None
@@ -1358,14 +1519,22 @@ class MainWindow(QMainWindow):
         if self.operation_mode != "SIM" or self.sim_controller is None:
             self.sim_timer.stop()
             return
-        now = time.perf_counter()
-        if self._sim_last_tick is None:
+        try:
+            now = time.perf_counter()
+            if self._sim_last_tick is None:
+                self._sim_last_tick = now
+                return
+            real_dt = min(0.25, max(0.0, now - self._sim_last_tick))
             self._sim_last_tick = now
-            return
-        real_dt = min(0.25, max(0.0, now - self._sim_last_tick))
-        self._sim_last_tick = now
-        playback = float(self.sim_playback_combo.currentData())
-        self.sim_controller.step(real_dt * playback)
+            playback = float(self.sim_playback_combo.currentData())
+            self.sim_controller.step(real_dt * playback)
+        except Exception as exc:
+            self.sim_timer.stop()
+            if self.sim_controller.status == SimulationStatus.RUNNING:
+                self.sim_controller.pause()
+            self.sim_pause_btn.setText("Resume")
+            self.sim_status_label.setText(f"SIM error: {exc}")
+            traceback.print_exc()
 
     def _on_sim_state_changed(self, snapshot):
         states = ", ".join(
@@ -1375,7 +1544,14 @@ class MainWindow(QMainWindow):
         self.sim_status_label.setText(states)
 
     def _on_sim_positions(self, snapshot):
+        now = time.monotonic()
+        if now - self._sim_last_map_update < 0.5:
+            return
+        self._sim_last_map_update = now
         self.map_bridge.setSimulationPositions(snapshot["drones"])
+        if now - self._sim_last_trail_update < 2.0:
+            return
+        self._sim_last_trail_update = now
         for drone_id, state in snapshot["drones"].items():
             point = state.get("position")
             if point is None:
@@ -1385,9 +1561,7 @@ class MainWindow(QMainWindow):
                 trail[-1][0], trail[-1][1], point[0], point[1]
             ) >= 1.0:
                 trail.append([point[0], point[1]])
-        self.sim_trail_frame += 1
-        if self.sim_trail_frame % 5 == 0:
-            self.map_bridge.setSimulationRoutes(self.sim_trails, "flown")
+                self.map_bridge.appendSimulationTrail(drone_id, point)
 
     def _on_sim_failure(self, event):
         drone_id = event["drone_id"]
@@ -1411,22 +1585,32 @@ class MainWindow(QMainWindow):
         else:
             routes = {}
             for drone_id, route in result.routes.items():
-                current = self.sim_controller.drones[drone_id].position
-                routes[drone_id] = ([current] if current is not None else []) + list(route)
-            self.map_bridge.setSimulationRoutes(routes, "replan")
+                # The controller still flies the transit leg from its current
+                # position. The plan overlay starts at the first new waypoint
+                # so the map shows exactly the three replacement trajectories.
+                routes[drone_id] = list(route)
+            QTimer.singleShot(
+                0, lambda planned_routes=routes: self.map_bridge.setSimulationRoutes(
+                    planned_routes, "replan"
+                )
+            )
             message = (
                 f"{event['strategy']} replan {result.conflicts_before}"
                 f"->{result.conflicts_after} conflicts in "
                 f"{event['compute_time_s'] * 1000.0:.1f} ms"
             )
+            profile = "; ".join(
+                f"U{drone_id}: h={result.altitudes.get(drone_id, 0.0):.0f}m, "
+                f"delay={result.delays.get(drone_id, 0.0):.0f}s"
+                for drone_id in sorted(result.routes)
+            )
+            message = f"{message} | {profile}"
         self.map_bridge.showSimulationEvent(message)
-        self.map_bridge.fitSimulationBounds()
         self.log_replan(f"[SIM] {message}")
         self._update_simulation_metrics_display()
 
     def _on_sim_finished(self, snapshot):
         self.sim_timer.stop()
-        self.map_bridge.setSimulationRoutes(self.sim_trails, "flown")
         self.map_bridge.showSimulationEvent(
             f"Simulation finished at t={snapshot['simulation_time_s']:.1f}s"
         )
@@ -1525,7 +1709,7 @@ class MainWindow(QMainWindow):
             btn_style + "QPushButton { background-color: rgb(255, 85, 127); color: white; }"
         )
         self.btn_replan_force.clicked.connect(
-            lambda: asyncio.create_task(self.force_replan_dialog())
+            lambda: schedule_async(self.force_replan_dialog())
         )
 
         self.btn_sim_fail = QPushButton("Sim Fail UAV1", parent)
@@ -1533,7 +1717,7 @@ class MainWindow(QMainWindow):
             btn_style + "QPushButton { background-color: rgb(85, 170, 255); }"
         )
         self.btn_sim_fail.clicked.connect(
-            lambda: asyncio.create_task(self.simulate_uav_fail(1))
+            lambda: schedule_async(self.simulate_uav_fail(1))
         )
 
         self.replan_status_label = QLabel("Replan standby (serpentine remap)", parent)
@@ -1686,6 +1870,13 @@ class MainWindow(QMainWindow):
                 )
                 return
 
+            if result.conflicts_after > 0:
+                self.log_replan(
+                    f"[REPLAN] aborted: {result.conflicts_after} predicted conflict(s) "
+                    "remain after CAA; no mission was paused or uploaded"
+                )
+                return
+
             result.alive_indices = [
                 i for i in result.alive_indices if len(result.routes.get(i, [])) >= 1
             ]
@@ -1786,26 +1977,26 @@ class MainWindow(QMainWindow):
     def connect_drone_control_buttons(self):
         for index in range(1, 7):
             getattr(self.ui, f"connect_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.connect_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.connect_drone(i)))
             getattr(self.ui, f"arm_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.arm_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.arm_drone(i)))
             getattr(self.ui, f"disarm_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.disarm_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.disarm_drone(i)))
             getattr(self.ui, f"take_off_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.take_off_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.take_off_drone(i)))
             getattr(self.ui, f"land_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.land_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.land_drone(i)))
             getattr(self.ui, f"return_and_land_drone_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.rtl_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.rtl_drone(i)))
 
     def connect_mission_buttons(self):
         for index in range(1, 7):
             getattr(self.ui, f"mission_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.start_mission_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.start_mission_drone(i)))
             getattr(self.ui, f"goto_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.goto_coordinate_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.goto_coordinate_drone(i)))
             getattr(self.ui, f"pause_uav_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.pause_drone(i)))
+                lambda checked=False, i=index: schedule_async(self.pause_drone(i)))
 
     def connect_detection_buttons(self):
         fly_buttons = (
@@ -1815,14 +2006,15 @@ class MainWindow(QMainWindow):
             (self.ui.fly_4_UAV, 4),
         )
         for button, count in fly_buttons:
-            button.clicked.connect(lambda checked=False, n=count: asyncio.create_task(self.button_uav_clicked(n)))
+            button.clicked.connect(lambda checked=False, n=count: schedule_async(self.button_uav_clicked(n)))
 
     def connect_parameter_buttons(self):
         for index in range(1, 7):
             getattr(self.ui, f"save_{index}").clicked.connect(
-                lambda checked=False, i=index: asyncio.create_task(self.change_information(i)))
+                lambda checked=False, i=index: schedule_async(self.change_information(i)))
 
     async def connect_drone(self, index):
+        self.start_background_tasks()
         drone = self.get_drone(index)
         self.log_drone(index, f"--Connecting to Drone {index}")
         await drone.connect()
@@ -2366,14 +2558,51 @@ def log_unhandled_exception(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
 
 
+def log_asyncio_exception(loop, context):
+    exception = context.get("exception")
+    message = context.get("message", "Unhandled asyncio exception")
+    print(f"[ASYNC] {message}", file=sys.stderr, flush=True)
+    if exception is not None:
+        traceback.print_exception(
+            type(exception), exception, exception.__traceback__, file=sys.stderr
+        )
+
+
 if __name__ == "__main__":
     sys.excepthook = log_unhandled_exception
+    crash_log = open(os.path.join(BASE_DIR, "app_crash.log"), "a", encoding="utf-8")
+    faulthandler.enable(file=crash_log, all_threads=True)
+    crash_log.write(f"\nSTART pid={os.getpid()} at {datetime.now().isoformat()}\n")
+    crash_log.flush()
     app = QApplication(sys.argv)
-    loop = QEventLoop(app)
+    app.aboutToQuit.connect(
+        lambda: (crash_log.write("ABOUT_TO_QUIT\n"), crash_log.flush())
+    )
+    # Keep Qt as the only native GUI event loop. qasync can terminate with a
+    # Windows access violation during long QtWebEngine sessions, so asyncio is
+    # advanced in short non-blocking iterations by a Qt timer instead.
+    loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
+    loop.set_exception_handler(log_asyncio_exception)
+
+    asyncio_timer = QTimer()
+    asyncio_timer.setInterval(10)
+    asyncio_timer.timeout.connect(lambda: pump_asyncio(loop))
+    _ASYNCIO_TIMER = asyncio_timer
 
     window = MainWindow()
     window.show()
 
-    with loop:
-        sys.exit(loop.run_forever())
+    try:
+        exit_code = app.exec_()
+    finally:
+        asyncio_timer.stop()
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.close()
+        crash_log.write(f"EVENT_LOOP_ENDED at {datetime.now().isoformat()}\n")
+        crash_log.flush()
+    sys.exit(exit_code)

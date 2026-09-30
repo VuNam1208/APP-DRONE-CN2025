@@ -1,0 +1,223 @@
+START 2026-09-22 11:14:45
+Windows fatal exception: access violation
+
+Current thread 0x00003dcc (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 144 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 148 in <module>
+START 2026-09-22 11:16:02
+Windows fatal exception: access violation
+
+Current thread 0x00002db0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 144 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 148 in <module>
+START 2026-09-22 11:17:22
+Windows fatal exception: access violation
+
+Current thread 0x00004888 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 154 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 158 in <module>
+START 2026-09-22 11:18:21
+Windows fatal exception: access violation
+
+Current thread 0x00002cb4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 156 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 160 in <module>
+START 2026-09-22 11:19:59
+Windows fatal exception: access violation
+
+Current thread 0x00004460 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 156 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 160 in <module>
+START 2026-09-22 11:22:18
+START 2026-09-22 11:23:53
+Windows fatal exception: access violation
+
+Current thread 0x00004218 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 160 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in <module>
+START 2026-09-22 11:25:35
+Windows fatal exception: access violation
+
+Current thread 0x000046f0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 160 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in <module>
+START 2026-09-22 11:27:04
+START 2026-09-22 11:29:00
+START 2026-09-22 11:31:05
+START 2026-09-22 11:33:12
+START 2026-09-24 14:12:54
+Windows fatal exception: access violation
+
+Current thread 0x00002d20 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-24 14:18:00
+START 2026-09-24 14:25:36
+START 2026-09-24 14:28:45
+START 2026-09-24 14:31:00
+START 2026-09-24 14:33:15
+Windows fatal exception: access violation
+
+Current thread 0x000056a0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-24 14:41:06
+START 2026-09-24 14:43:23
+Windows fatal exception: access violation
+
+Current thread 0x00006428 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-24 14:48:36
+START 2026-09-24 14:52:23
+START 2026-09-24 14:54:50
+START 2026-09-24 14:58:18
+START 2026-09-24 15:01:41
+START 2026-09-24 15:03:43
+START 2026-09-24 15:06:51
+START 2026-09-24 15:09:59
+START 2026-09-24 15:13:12
+Windows fatal exception: access violation
+
+Current thread 0x00005db0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-24 15:17:40
+START 2026-09-24 15:20:10
+START 2026-09-29 14:45:42
+START 2026-09-29 14:46:35
+START 2026-09-29 14:49:13
+Windows fatal exception: access violation
+
+Thread 0x00004da0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 144 in _poll
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 69 in select
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 196 in run
+
+Current thread 0x000002e0 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-29 14:53:59
+Windows fatal exception: access violation
+
+Thread 0x00002b88 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 147 in _poll
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 72 in select
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 199 in run
+
+Current thread 0x00005ddc (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 404 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-29 14:58:14
+Windows fatal exception: access violation
+
+Current thread 0x00006908 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:03:18
+START 2026-09-29 15:09:31
+Windows fatal exception: access violation
+
+Current thread 0x00004a34 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:11:57
+Windows fatal exception: access violation
+
+Current thread 0x00006278 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:17:06
+Windows fatal exception: access violation
+
+Current thread 0x00007294 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:26:18
+Windows fatal exception: access violation
+
+Current thread 0x00002be4 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:30:16
+Windows fatal exception: access violation
+
+Current thread 0x00006364 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:31:18
+Windows fatal exception: access violation
+
+Current thread 0x00007284 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 15:34:42
+START 2026-09-29 23:40:01
+Windows fatal exception: access violation
+
+Thread 0x00007208 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 144 in _poll
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 69 in select
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\_windows.py", line 196 in run
+
+Current thread 0x00003bf4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-29 23:48:29
+Windows fatal exception: access violation
+
+Current thread 0x00006e5c (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-29 23:51:45
+Windows fatal exception: access violation
+
+Current thread 0x00002d18 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 168 in <module>
+START 2026-09-29 23:54:27
+START 2026-09-29 23:57:35
+START 2026-09-30 00:01:14
+Windows fatal exception: access violation
+
+Current thread 0x000073b4 (most recent call first):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python310\lib\site-packages\qasync\__init__.py", line 377 in run_forever
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 173 in <module>
+START 2026-09-30 00:05:38
+Windows fatal exception: access violation
+
+Current thread 0x00002018 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 171 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 183 in <module>
+START 2026-09-30 00:09:01
+Windows fatal exception: access violation
+
+Current thread 0x00003f28 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 171 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 183 in <module>
+START 2026-09-30 00:13:10
+START 2026-09-30 00:16:31
+Windows fatal exception: access violation
+
+Current thread 0x00003514 (most recent call first):
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 164 in main
+  File "C:\Users\HP\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\xd4NG NGH\u1ec6\D\u1ea1y_UET\APP-DRONE-CN2025\smoke_test_sim_app.py", line 169 in <module>
+START 2026-09-30 00:20:24
+START 2026-09-30 16:42:02
+START 2026-09-30 16:49:10

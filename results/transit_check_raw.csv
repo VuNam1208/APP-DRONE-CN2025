@@ -1,0 +1,9 @@
+﻿run_id,repeat,scenario,strategy,failed_uav,failure_type,failure_progress,speed_mps,d_safe_m,cover_radius_m,uav_count,eta_pct,t_fin_s,l_max_m,n_c,t_detect_s,t_compute_s,t_react_s,pool_pts,route_pts,mission_layout,mission_hash,code_hash,git_revision,status
+1,1,S1,B0,1,lost_link,0.4,2.0,15.0,12.0,4,73.3,100.0,200.0,0,3.0,0.0065264,3.0065264,45,33,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+2,1,S1,B1,1,lost_link,0.4,2.0,15.0,12.0,4,100.0,330.4,660.9,1,3.0,0.0609799,3.0609799,45,120,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+3,1,S1,Proposed,1,lost_link,0.4,2.0,15.0,12.0,4,100.0,330.4,660.9,0,3.0,0.0335678,3.0335678,45,120,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+4,1,S2,B0,1,low_battery,0.4,2.0,15.0,12.0,4,73.3,100.0,200.0,0,0.0,0.0031938,0.0031938,45,33,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+5,1,S2,B1,1,low_battery,0.4,2.0,15.0,12.0,4,100.0,330.4,660.9,1,0.0,0.0700616,0.0700616,45,120,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+6,1,S2,Proposed,1,low_battery,0.4,2.0,15.0,12.0,4,100.0,330.4,660.9,0,0.0,0.0399226,0.0399226,45,120,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+7,1,S3,B1,1,early_failure,0.25,2.0,15.0,12.0,4,100.0,407.7,815.5,1,0.0,0.0682042,0.0682042,53,130,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok
+8,1,S3,Proposed,1,early_failure,0.25,2.0,15.0,12.0,4,100.0,407.7,815.5,0,0.0,0.0299078,0.0299078,53,130,adjacent,8ab62245bebb5e70,3b62b18a424d65fd,dc8edfe,ok

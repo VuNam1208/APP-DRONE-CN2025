@@ -7,6 +7,7 @@ Call ``step(dt)`` from any scheduler and subscribe to events with ``on``.
 from __future__ import annotations
 
 import os
+import json
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -20,6 +21,7 @@ from replan_coordinator import (
     haversine_m,
     load_waypoints_from_plan,
     path_length_m,
+    prepend_route_starts,
 )
 from simulation_metrics import calculate_route_metrics, remaining_routes, residual_pool
 
@@ -48,6 +50,7 @@ class DroneSimulationState:
     drone_id: int
     original_route: List[Point]
     route: List[Point]
+    home: Point
     speed_mps: float
     battery_percent: float = 80.0
     altitude_m: float = 12.0
@@ -55,9 +58,12 @@ class DroneSimulationState:
     segment_index: int = 0
     segment_offset_m: float = 0.0
     distance_flown_m: float = 0.0
+    coverage_distance_flown_m: float = 0.0
     delay_remaining_s: float = 0.0
     position: Optional[Point] = None
     finished_time_s: Optional[float] = None
+    coverage_start_index: int = 1
+    coverage_end_index: int = 1
 
     def __post_init__(self) -> None:
         if self.route and self.position is None:
@@ -72,7 +78,7 @@ class DroneSimulationState:
         total = self.original_length_m
         if total <= 0.0:
             return 1.0 if self.status == DroneStatus.FINISHED else 0.0
-        return min(1.0, self.distance_flown_m / total)
+        return min(1.0, self.coverage_distance_flown_m / total)
 
 
 class SimulationController:
@@ -268,6 +274,7 @@ class SimulationController:
                     "distance_flown_m": drone.distance_flown_m,
                     "delay_remaining_s": drone.delay_remaining_s,
                     "finished_time_s": drone.finished_time_s,
+                    "phase": self._drone_phase(drone),
                 }
                 for drone_id, drone in self.drones.items()
             },
@@ -291,18 +298,43 @@ class SimulationController:
 
     def _load_missions(self) -> None:
         drones: Dict[int, DroneSimulationState] = {}
+        home = None
         for drone_id in self.uav_ids:
             path = os.path.join(self.mission_dir, f"points{drone_id}.plan")
             route = load_waypoints_from_plan(path)
             if not route:
                 raise FileNotFoundError(f"Missing or empty mission plan: {path}")
+            if home is None:
+                with open(path, "r", encoding="utf-8") as handle:
+                    plan = json.load(handle)
+                planned_home = plan.get("mission", {}).get("plannedHomePosition")
+                if planned_home and len(planned_home) >= 2:
+                    home = (float(planned_home[0]), float(planned_home[1]))
+                else:
+                    home = route[0]
+            full_route = [home] + list(route) + [home]
             drones[drone_id] = DroneSimulationState(
                 drone_id=drone_id,
                 original_route=list(route),
-                route=list(route),
+                route=full_route,
+                home=home,
                 speed_mps=self.speed_mps,
+                coverage_start_index=1,
+                coverage_end_index=len(route),
             )
         self.drones = drones
+
+    @staticmethod
+    def _drone_phase(drone: DroneSimulationState) -> str:
+        if drone.status == DroneStatus.FAILED:
+            return "FAILED"
+        if drone.status == DroneStatus.FINISHED:
+            return "HOME"
+        if drone.segment_index < drone.coverage_start_index:
+            return "TRANSIT"
+        if drone.segment_index < drone.coverage_end_index:
+            return "COVERAGE"
+        return "RTL"
 
     def _advance_drone(self, drone: DroneSimulationState, dt_s: float) -> None:
         if drone.status in (DroneStatus.FAILED, DroneStatus.FINISHED):
@@ -332,6 +364,8 @@ class SimulationController:
             travelled = min(remaining_distance, available)
             drone.segment_offset_m += travelled
             drone.distance_flown_m += travelled
+            if drone.coverage_start_index <= drone.segment_index < drone.coverage_end_index:
+                drone.coverage_distance_flown_m += travelled
             remaining_distance -= travelled
 
             ratio = min(1.0, drone.segment_offset_m / segment_length)
@@ -379,12 +413,22 @@ class SimulationController:
             conflicts_before = result.conflicts_before
             conflicts_after = result.conflicts_after
 
-        metrics = calculate_route_metrics(
+        coverage_metrics = calculate_route_metrics(
             targets,
             routes,
             delays,
             self.speed_mps,
         )
+        operational_metrics = calculate_route_metrics(
+            targets,
+            prepend_route_starts(routes, positions),
+            delays,
+            self.speed_mps,
+            cover_radius_m=coverage_metrics["cover_radius_m"],
+        )
+        metrics = dict(coverage_metrics)
+        metrics["t_fin_s"] = operational_metrics["t_fin_s"]
+        metrics["l_max_m"] = operational_metrics["l_max_m"]
         reaction_s = float(self.replan_compute_s or 0.0)
         if self.failure_type == "lost_link":
             reaction_s += 3.0
@@ -411,12 +455,21 @@ class SimulationController:
         if self.strategy == "B0":
             return None
 
+        has_coverage_progress = any(
+            drone.segment_index >= drone.coverage_start_index
+            for drone in self.drones.values()
+        )
+
         coordinator = ReplanCoordinator(
             self.mission_dir,
             ReplanConfig(
                 enabled=True,
                 monitor_indices=self.uav_ids,
-                remap_mode="serpentine",
+                # Redistribute only exact unfinished waypoints. Rebuilding a
+                # lawnmower over their common bounding box can cover an area
+                # that the fleet has already completed.
+                remap_mode="waypoints" if has_coverage_progress else "serpentine",
+                local_only=False,
                 apply_caa=self.strategy == "Proposed",
                 write_plans=False,
                 speed_mps=self.speed_mps,
@@ -427,6 +480,13 @@ class SimulationController:
         for drone_id, drone in self.drones.items():
             if drone.position is None:
                 continue
+            if drone.segment_index < drone.coverage_start_index:
+                unfinished = list(drone.original_route)
+            elif drone.segment_index < drone.coverage_end_index:
+                unfinished = list(drone.original_route[drone.segment_index :])
+            else:
+                unfinished = []
+            coordinator.set_remaining_waypoints(drone_id, unfinished)
             coordinator.update_position(
                 drone_id, drone.position[0], drone.position[1], drone.altitude_m
             )
@@ -450,9 +510,12 @@ class SimulationController:
                 or haversine_m(start[0], start[1], new_route[0][0], new_route[0][1]) > 0.5
             ):
                 new_route.insert(0, start)
+            new_route.append(drone.home)
             drone.route = new_route
             drone.segment_index = 0
             drone.segment_offset_m = 0.0
+            drone.coverage_start_index = 1
+            drone.coverage_end_index = len(new_route) - 1
             drone.altitude_m = float(result.altitudes.get(drone_id, drone.altitude_m))
             drone.delay_remaining_s = float(result.delays.get(drone_id, 0.0))
             drone.status = (
