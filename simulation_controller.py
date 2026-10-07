@@ -469,7 +469,12 @@ class SimulationController:
                 # lawnmower over their common bounding box can cover an area
                 # that the fleet has already completed.
                 remap_mode="waypoints" if has_coverage_progress else "serpentine",
-                local_only=False,
+                # Preserve each surviving UAV's unfinished lawnmower order;
+                # only the failed UAV's residual route is handed to one helper.
+                # Global longitude sorting destroys the lane sequence and can
+                # collapse the displayed route to the region boundaries.
+                local_only=has_coverage_progress,
+                contiguous_failed_handoff=has_coverage_progress,
                 apply_caa=self.strategy == "Proposed",
                 write_plans=False,
                 speed_mps=self.speed_mps,

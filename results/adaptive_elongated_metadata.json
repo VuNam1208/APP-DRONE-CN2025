@@ -1,0 +1,25 @@
+{
+  "model": "offline point-kinematic simulation",
+  "not_sitl": true,
+  "mission_layout": "elongated",
+  "mission_hash": "96030ccf431254f3",
+  "code_hash": "61d2e45f31757b7a",
+  "git_revision": "79ea314",
+  "repeats": 1,
+  "progresses": [
+    0.2,
+    0.4,
+    0.6,
+    0.8
+  ],
+  "failed_uavs": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "speed_mps": 2.0,
+  "d_safe_m": 15.0,
+  "raw_csv": "adaptive_elongated_raw.csv",
+  "summary_csv": "adaptive_elongated_summary.csv"
+}

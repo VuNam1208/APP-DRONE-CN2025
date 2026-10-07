@@ -9,10 +9,8 @@ ID_DRONE_PATH = os.path.join(BASE_DIR, "ID_drone.txt")
 ULTRALYTICS_CONFIG_DIR = os.path.join(BASE_DIR, ".ultralytics")
 os.makedirs(ULTRALYTICS_CONFIG_DIR, exist_ok=True)
 os.environ.setdefault("YOLO_CONFIG_DIR", ULTRALYTICS_CONFIG_DIR)
-os.environ.setdefault("QT_OPENGL", "software")
 os.environ.setdefault(
     "QTWEBENGINE_CHROMIUM_FLAGS",
-    "--disable-gpu --disable-gpu-compositing "
     "--disable-background-timer-throttling --disable-renderer-backgrounding",
 )
 from PyQt5 import QtCore, QtGui
@@ -1452,8 +1450,7 @@ class MainWindow(QMainWindow):
             "initial",
         )
         self.map_bridge.setSimulationPositions(self.sim_controller.snapshot()["drones"])
-        for drone_id, trail in self.sim_trails.items():
-            self.map_bridge.appendSimulationTrail(drone_id, trail[0])
+        self.map_bridge.setSimulationTrails(self.sim_trails)
         self.map_bridge.fitSimulationBounds()
         self.sim_controller.start()
         self._set_sim_configuration_enabled(False)
@@ -1561,7 +1558,7 @@ class MainWindow(QMainWindow):
                 trail[-1][0], trail[-1][1], point[0], point[1]
             ) >= 1.0:
                 trail.append([point[0], point[1]])
-                self.map_bridge.appendSimulationTrail(drone_id, point)
+        self.map_bridge.setSimulationTrails(self.sim_trails)
 
     def _on_sim_failure(self, event):
         drone_id = event["drone_id"]
@@ -1580,6 +1577,7 @@ class MainWindow(QMainWindow):
 
     def _on_sim_replan(self, event):
         result = event["result"]
+        self.sim_trails = {}
         if result is None:
             message = f"{event['strategy']}: no route replacement"
         else:

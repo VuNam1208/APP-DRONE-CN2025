@@ -5,13 +5,14 @@ When one UAV fails (lost link / low battery / failsafe), remaining coverage is
 remapped for alive UAVs:
   - remap_mode="serpentine" (default): pool ALL remaining waypoints → split by
     longitude into balanced point-groups → lawnmower/serpentine in each group's
-    bbox → altitude/time collision avoidance
+    residual-route handoff → altitude/time conflict mitigation
   - remap_mode="waypoints": legacy redistribute unfinished WPs only
 """
 
 from __future__ import annotations
 
 import json
+import itertools
 import math
 import os
 import time
@@ -149,21 +150,139 @@ def split_points_balanced(points: Sequence[Point], parts: int) -> List[List[Poin
     return groups[:parts]
 
 
+def split_route_contiguous(points: Sequence[Point], parts: int) -> List[List[Point]]:
+    """Split an ordered polyline into length-balanced contiguous segments.
+
+    Adjacent segments share their boundary waypoint so no original edge is
+    dropped. A waypoint is never interleaved between non-adjacent segments.
+    """
+    route = list(points)
+    if not route or parts <= 0:
+        return []
+    if len(route) == 1 or parts == 1:
+        return [route]
+
+    segment_count = min(parts, len(route) - 1)
+    cumulative = [0.0]
+    for left, right in zip(route, route[1:]):
+        cumulative.append(
+            cumulative[-1]
+            + haversine_m(left[0], left[1], right[0], right[1])
+        )
+
+    cuts = [0]
+    total = cumulative[-1]
+    for part_index in range(1, segment_count):
+        minimum = cuts[-1] + 1
+        maximum = (len(route) - 1) - (segment_count - part_index)
+        target = total * part_index / segment_count
+        if total <= 1e-9:
+            cut = min(maximum, maximum if minimum > maximum else minimum)
+        else:
+            cut = min(
+                range(minimum, maximum + 1),
+                key=lambda index: abs(cumulative[index] - target),
+            )
+        cuts.append(cut)
+    cuts.append(len(route) - 1)
+    return [route[start : end + 1] for start, end in zip(cuts, cuts[1:])]
+
+
+def assign_contiguous_residual_segments(
+    failed_route: Sequence[Point],
+    alive: Sequence[int],
+    own_remaining: Dict[int, Sequence[Point]],
+    positions: Dict[int, Point],
+    adaptive_segment_count: bool = False,
+    assignment_objective: str = "makespan",
+) -> Dict[int, List[Point]]:
+    """Assign an adaptive number of contiguous segments by projected makespan."""
+    helpers = [drone_id for drone_id in alive if drone_id in positions]
+    if not helpers or not failed_route:
+        return {drone_id: [] for drone_id in alive}
+
+    own_lengths = {
+        drone_id: path_length_m(
+            [positions[drone_id]] + list(own_remaining.get(drone_id, []))
+        )
+        if drone_id in positions
+        else path_length_m(own_remaining.get(drone_id, []))
+        for drone_id in alive
+    }
+    seeds = {
+        drone_id: (
+            own_remaining[drone_id][-1]
+            if own_remaining.get(drone_id)
+            else positions[drone_id]
+        )
+        for drone_id in helpers
+    }
+
+    best = None
+    max_segments = min(len(helpers), max(1, len(failed_route) - 1))
+    segment_counts = (
+        range(1, max_segments + 1)
+        if adaptive_segment_count
+        else (max_segments,)
+    )
+    for segment_count in segment_counts:
+        chunks = split_route_contiguous(failed_route, segment_count)
+        for helper_order in itertools.permutations(helpers, segment_count):
+            for reverse_flags in itertools.product((False, True), repeat=segment_count):
+                shares = {drone_id: [] for drone_id in alive}
+                projected = dict(own_lengths)
+                connector_total = 0.0
+                connectors = []
+                for chunk, helper, reverse_chunk in zip(
+                    chunks, helper_order, reverse_flags
+                ):
+                    oriented = list(reversed(chunk)) if reverse_chunk else list(chunk)
+                    seed = seeds[helper]
+                    connector = haversine_m(
+                        seed[0], seed[1], oriented[0][0], oriented[0][1]
+                    )
+                    shares[helper] = oriented
+                    projected[helper] += connector + path_length_m(oriented)
+                    connector_total += connector
+                    connectors.append(connector)
+                values = list(projected.values())
+                if assignment_objective == "connector":
+                    objective = (
+                        max(connectors, default=0.0),
+                        connector_total,
+                        max(values, default=0.0),
+                        max(values, default=0.0) - min(values, default=0.0),
+                        -segment_count,
+                    )
+                else:
+                    objective = (
+                        max(values, default=0.0),
+                        max(values, default=0.0) - min(values, default=0.0),
+                        connector_total,
+                        max(connectors, default=0.0),
+                        -segment_count,
+                    )
+                if best is None or objective < best[0]:
+                    best = (objective, shares)
+    return best[1] if best is not None else {drone_id: [] for drone_id in alive}
+
+
 def order_path_from_start(start: Point, points: Sequence[Point]) -> List[Point]:
+    """Return every input point once in nearest-neighbor order from ``start``."""
     if not points:
-        return [start]
+        return []
     remaining = list(points)
-    path = [start]
+    path: List[Point] = []
+    current = start
     while remaining:
-        last = path[-1]
         nearest_idx = min(
             range(len(remaining)),
-            key=lambda i: haversine_m(last[0], last[1], remaining[i][0], remaining[i][1]),
+            key=lambda i: haversine_m(
+                current[0], current[1], remaining[i][0], remaining[i][1]
+            ),
         )
-        path.append(remaining.pop(nearest_idx))
-    # Drop duplicated start if first coverage point equals start.
-    if len(path) >= 2 and haversine_m(path[0][0], path[0][1], path[1][0], path[1][1]) < 1.0:
-        return path[1:]
+        current = remaining.pop(nearest_idx)
+        path.append(current)
     return path
 
 
@@ -423,9 +542,6 @@ def merge_own_and_share_routes(
     if share_points:
         seed = route[-1] if route else start
         share_ordered = order_path_from_start(seed, list(share_points))
-        # order_path_from_start prefixes seed; drop it when merging.
-        if share_ordered and haversine_m(share_ordered[0][0], share_ordered[0][1], seed[0], seed[1]) < 1.0:
-            share_ordered = share_ordered[1:]
         for point in share_ordered:
             if not route or haversine_m(route[-1][0], route[-1][1], point[0], point[1]) > 1.0:
                 route.append(point)
@@ -725,6 +841,10 @@ class ReplanConfig:
     # "waypoints": legacy redistribute unfinished WPs only.
     remap_mode: str = "serpentine"
     local_only: bool = False  # ignored when remap_mode == "serpentine"
+    nearest_failed_only: bool = False
+    contiguous_failed_handoff: bool = False
+    adaptive_segment_count: bool = False
+    assignment_objective: str = "makespan"
     grid_spacing_m: float = 0.0  # 0 = auto-estimate from remaining points
     cooldown_s: float = 15.0
 
@@ -958,11 +1078,54 @@ class ReplanCoordinator:
             self.log(f"[REPLAN] Failed UAV {failed_index} has no remaining points.")
             return None
 
+        assigned_share: Optional[Dict[int, List[Point]]] = None
         if self.config.local_only:
             # Keep each alive UAV's own unfinished work, and add a share of
             # the failed UAV remaining points. Do NOT replace their mission.
             own_remaining = {i: self._collect_remaining_for_index(i) for i in alive}
-            share_groups = split_points_balanced(failed_remain, len(alive))
+            if self.config.contiguous_failed_handoff:
+                positions = {
+                    drone_id: (self.states[drone_id].lat, self.states[drone_id].lon)
+                    for drone_id in alive
+                    if self.states[drone_id].lat is not None
+                    and self.states[drone_id].lon is not None
+                }
+                assigned_share = assign_contiguous_residual_segments(
+                    failed_remain,
+                    alive,
+                    own_remaining,
+                    positions,
+                    adaptive_segment_count=self.config.adaptive_segment_count,
+                    assignment_objective=self.config.assignment_objective,
+                )
+                share_groups = []
+            elif self.config.nearest_failed_only:
+                assigned_share = {i: [] for i in alive}
+                candidates = []
+                for drone_id in alive:
+                    state = self.states[drone_id]
+                    own = own_remaining.get(drone_id, [])
+                    seed = own[-1] if own else (state.lat, state.lon)
+                    if seed[0] is None or seed[1] is None:
+                        continue
+                    forward = haversine_m(
+                        seed[0], seed[1], failed_remain[0][0], failed_remain[0][1]
+                    )
+                    reverse = haversine_m(
+                        seed[0], seed[1], failed_remain[-1][0], failed_remain[-1][1]
+                    )
+                    candidates.append((min(forward, reverse), drone_id, reverse < forward))
+                if not candidates:
+                    self.log("[REPLAN] No positioned helper for failed residual route.")
+                    return None
+                _, helper, reverse_route = min(candidates)
+                assigned_share[helper] = list(
+                    reversed(failed_remain) if reverse_route else failed_remain
+                )
+                share_groups = []
+            else:
+                assigned_share = None
+                share_groups = split_points_balanced(failed_remain, len(alive))
         else:
             remain = list(failed_remain)
             for index in alive:
@@ -974,32 +1137,33 @@ class ReplanCoordinator:
             share_groups = split_points_balanced(remain, len(alive))
 
         # Assign failed-share groups to nearest alive UAV.
-        assigned_share: Dict[int, List[Point]] = {i: [] for i in alive}
-        used = set()
-        for drone_id in alive:
-            state = self.states[drone_id]
-            if state.lat is None or state.lon is None:
-                continue
-            best_g = None
-            best_d = float("inf")
+        if assigned_share is None:
+            assigned_share = {i: [] for i in alive}
+            used = set()
+            for drone_id in alive:
+                state = self.states[drone_id]
+                if state.lat is None or state.lon is None:
+                    continue
+                best_g = None
+                best_d = float("inf")
+                for g_idx, group in enumerate(share_groups):
+                    if g_idx in used or not group:
+                        continue
+                    entry = min(group, key=lambda p: haversine_m(state.lat, state.lon, p[0], p[1]))
+                    dist = haversine_m(state.lat, state.lon, entry[0], entry[1])
+                    if dist < best_d:
+                        best_d = dist
+                        best_g = g_idx
+                if best_g is None:
+                    continue
+                used.add(best_g)
+                assigned_share[drone_id] = list(share_groups[best_g])
+
             for g_idx, group in enumerate(share_groups):
                 if g_idx in used or not group:
                     continue
-                entry = min(group, key=lambda p: haversine_m(state.lat, state.lon, p[0], p[1]))
-                dist = haversine_m(state.lat, state.lon, entry[0], entry[1])
-                if dist < best_d:
-                    best_d = dist
-                    best_g = g_idx
-            if best_g is None:
-                continue
-            used.add(best_g)
-            assigned_share[drone_id] = list(share_groups[best_g])
-
-        for g_idx, group in enumerate(share_groups):
-            if g_idx in used or not group:
-                continue
-            drone_id = min(alive, key=lambda i: path_length_m(assigned_share.get(i, [])))
-            assigned_share[drone_id] = list(assigned_share.get(drone_id, [])) + list(group)
+                drone_id = min(alive, key=lambda i: path_length_m(assigned_share.get(i, [])))
+                assigned_share[drone_id] = list(assigned_share.get(drone_id, [])) + list(group)
 
         assigned: Dict[int, List[Point]] = {}
         for drone_id in alive:
@@ -1007,11 +1171,25 @@ class ReplanCoordinator:
             if state.lat is None or state.lon is None:
                 continue
             start = (state.lat, state.lon)
-            route = merge_own_and_share_routes(
-                start,
-                own_remaining.get(drone_id, []),
-                assigned_share.get(drone_id, []),
-            )
+            if (
+                self.config.nearest_failed_only
+                or self.config.contiguous_failed_handoff
+            ):
+                route = []
+                for point in (
+                    list(own_remaining.get(drone_id, []))
+                    + list(assigned_share.get(drone_id, []))
+                ):
+                    if not route or haversine_m(
+                        route[-1][0], route[-1][1], point[0], point[1]
+                    ) > 1.0:
+                        route.append(point)
+            else:
+                route = merge_own_and_share_routes(
+                    start,
+                    own_remaining.get(drone_id, []),
+                    assigned_share.get(drone_id, []),
+                )
             if len(route) < 1:
                 continue
             assigned[drone_id] = route
@@ -1025,7 +1203,11 @@ class ReplanCoordinator:
             assigned=assigned,
             failed_remain_count=len(failed_remain),
             pool_count=sum(len(v) for v in assigned.values()),
-            mode_tag="waypoint-redistribute",
+            mode_tag=(
+                "contiguous-residual-handoff"
+                if self.config.contiguous_failed_handoff
+                else "waypoint-redistribute"
+            ),
         )
 
     def _finalize_replan(

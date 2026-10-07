@@ -5,8 +5,8 @@ import os
 import sys
 import time
 
-from PIL import ImageGrab
-from PyQt5.QtCore import QPoint, QTimer
+from PIL import Image
+from PyQt5.QtCore import QTimer
 
 from main import QApplication, MainWindow
 from simulation_controller import SimulationStatus
@@ -25,6 +25,7 @@ def main():
     renderer_failures = []
     map_ready_count = [0]
     visual_check = os.environ.get("SMOKE_VISUAL_CHECK") == "1"
+    paper_capture = os.environ.get("SMOKE_PAPER_CAPTURE") == "1"
     visual_scores = {}
     replan_at = [None]
     last_progress = [0]
@@ -87,15 +88,9 @@ def main():
 
     def capture_map(name):
         view = window.ui.embedded_map_view
-        top_left = view.mapToGlobal(QPoint(0, 0))
-        image = ImageGrab.grab(
-            bbox=(
-                top_left.x(), top_left.y(),
-                top_left.x() + view.width(), top_left.y() + view.height(),
-            )
-        ).convert("RGB")
         path = os.path.join(os.path.dirname(__file__), "results", f"smoke_map_{name}.png")
-        image.save(path)
+        view.grab().save(path, "PNG")
+        image = Image.open(path).convert("RGB")
         width, height = image.size
         if not width or not height:
             score = 0.0
@@ -108,9 +103,28 @@ def main():
         visual_scores[name] = score
         print("SMOKE_MAP_IMAGE", name, f"nonwhite={score:.3f}", path, flush=True)
 
+    def prepare_paper_capture():
+        if not paper_capture:
+            return
+        script = """
+          clearDrone();
+          map.invalidateSize(true);
+          const bounds = L.latLngBounds([]);
+          simulationCoverageLayer.eachLayer((layer) => {
+            if (layer.getBounds) bounds.extend(layer.getBounds());
+            else if (layer.getLatLng) bounds.extend(layer.getLatLng());
+          });
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, {padding: [36, 36], maxZoom: 19, animate: false});
+          }
+        """
+        window.ui.embedded_map_view.page().runJavaScript(script)
+
     def on_replan(event):
         replan_at[0] = time.monotonic()
+        QTimer.singleShot(700, prepare_paper_capture)
         QTimer.singleShot(1500, lambda: capture_map("replan"))
+        QTimer.singleShot(7200, prepare_paper_capture)
         QTimer.singleShot(8000, lambda: capture_map("after_replan"))
 
     def check_result():

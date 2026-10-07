@@ -2,7 +2,6 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand*\HyPL@Entry[1]{}
 \HyPL@Entry{0<</S/D>>}
-\@writefile{toc}{\contentsline {section}{\numberline {1}Giới thiệu}{1}{section.1}\protected@file@percent }
 \citation{Galceran2013}
 \citation{Cabreira2019}
 \citation{Fevgas2022}
@@ -27,26 +26,29 @@
 \citation{Meier2015}
 \citation{MAVSDK}
 \citation{PX4Failsafe}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Giới thiệu}{2}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Phương pháp nghiên cứu}{3}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Mô hình đội bay và nhiệm vụ}{3}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Sự kiện sự cố}{3}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Mục tiêu điều phối lại}{3}{subsection.2.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Quy trình điều phối lại quỹ đạo đa UAV sau sự cố bằng tái phân vùng serpentine.}}{4}{figure.caption.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Mô hình bài toán và điều kiện sự cố}{3}{subsection.2.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Quy trình điều phối lại nhiệm vụ.}}{4}{figure.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:pipeline}{{1}{4}{Quy trình điều phối lại quỹ đạo đa UAV sau sự cố bằng tái phân vùng serpentine}{figure.caption.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Quy trình điều phối lại}{4}{subsection.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Độ phức tạp và tham số triển khai}{5}{subsection.2.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Thiết kế thực nghiệm}{5}{subsection.2.6}\protected@file@percent }
+\newlabel{fig:pipeline}{{1}{4}{Quy trình điều phối lại nhiệm vụ}{figure.caption.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Quy trình điều phối lại}{4}{subsection.2.2}\protected@file@percent }
+\newlabel{eq:assignment}{{5}{4}{Quy trình điều phối lại}{equation.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Cài đặt, độ phức tạp và thiết kế thực nghiệm}{5}{subsection.2.3}\protected@file@percent }
+\newlabel{eq:recovery-ratio}{{6}{6}{Cài đặt, độ phức tạp và thiết kế thực nghiệm}{equation.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3}Kết quả và bàn luận}{7}{section.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Tổng hợp ma trận chính gồm 128 cấu hình B0/B1/Đề xuất, mỗi cấu hình lặp 30 lần để đo thời gian tính toán (3840 lượt); Greedy được đánh giá riêng ở Bảng~\ref {tab:geometry}. $N_{\mathrm  {cfg}}$ là số cấu hình; $N_c>0$ được xác định bằng phép tính khoảng cách tiếp cận liên tục; $T_{\mathrm  {fin}}$ là ước lượng thời gian hoàn thành động học. B0 không chạy cho S3; B1 là tái phân vùng không CAA.}}{7}{table.caption.2}\protected@file@percent }
-\newlabel{tab:results}{{1}{7}{Tổng hợp ma trận chính gồm 128 cấu hình B0/B1/Đề xuất, mỗi cấu hình lặp 30 lần để đo thời gian tính toán (3840 lượt); Greedy được đánh giá riêng ở Bảng~\ref {tab:geometry}. $N_{\mathrm {cfg}}$ là số cấu hình; $N_c>0$ được xác định bằng phép tính khoảng cách tiếp cận liên tục; $T_{\mathrm {fin}}$ là ước lượng thời gian hoàn thành động học. B0 không chạy cho S3; B1 là tái phân vùng không CAA}{table.caption.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Diễn giải theo câu hỏi nghiên cứu}{7}{subsection.3.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Ảnh hưởng của từng thành phần CAA trên 48 cấu hình tái phân vùng; mỗi cấu hình chạy một lần vì các chỉ số hình học là xác định.}}{8}{table.caption.3}\protected@file@percent }
-\newlabel{tab:ablation}{{2}{8}{Ảnh hưởng của từng thành phần CAA trên 48 cấu hình tái phân vùng; mỗi cấu hình chạy một lần vì các chỉ số hình học là xác định}{table.caption.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Kết quả trên ba cấu hình hình học và phương án đối chứng Greedy; $N_c$ được tính trước CAA.}}{8}{table.caption.4}\protected@file@percent }
-\newlabel{tab:geometry}{{3}{8}{Kết quả trên ba cấu hình hình học và phương án đối chứng Greedy; $N_c$ được tính trước CAA}{table.caption.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Ảnh chụp từ giao diện mô phỏng của GCS ở vận tốc danh định $2\,\mathrm  {m/s}$ khi UAV~2 mất liên lạc tại $20\%$ tiến độ: (a) nhiệm vụ ban đầu; (b) phần tuyến chưa hoàn thành của UAV lỗi; (c) B1 còn hai cặp xung đột dự báo; và (d) phương pháp đề xuất đưa số xung đột về 0 bằng các tầng cao $12/17/22\,\mathrm  {m}$ và thời gian chờ $0/2/4\,\mathrm  {s}$.}}{9}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:trajectory}{{2}{9}{Ảnh chụp từ giao diện mô phỏng của GCS ở vận tốc danh định $2\,\mathrm {m/s}$ khi UAV~2 mất liên lạc tại $20\%$ tiến độ: (a) nhiệm vụ ban đầu; (b) phần tuyến chưa hoàn thành của UAV lỗi; (c) B1 còn hai cặp xung đột dự báo; và (d) phương pháp đề xuất đưa số xung đột về 0 bằng các tầng cao $12/17/22\,\mathrm {m}$ và thời gian chờ $0/2/4\,\mathrm {s}$}{figure.caption.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Kết quả của ma trận thực nghiệm chính.}}{7}{table.caption.2}\protected@file@percent }
+\newlabel{tab:results}{{1}{7}{Kết quả của ma trận thực nghiệm chính}{table.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Phân tích kết quả}{7}{subsection.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces So sánh các tiêu chí gán tuyến dư.}}{8}{table.caption.3}\protected@file@percent }
+\newlabel{tab:assignment-ablation}{{2}{8}{So sánh các tiêu chí gán tuyến dư}{table.caption.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Ảnh hưởng của các thành phần giảm xung đột.}}{8}{table.caption.4}\protected@file@percent }
+\newlabel{tab:ablation}{{3}{8}{Ảnh hưởng của các thành phần giảm xung đột}{table.caption.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Kết quả trên ba dạng hình học nhiệm vụ.}}{9}{table.caption.5}\protected@file@percent }
+\newlabel{tab:geometry}{{4}{9}{Kết quả trên ba dạng hình học nhiệm vụ}{table.caption.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Quỹ đạo mô phỏng sau khi điều phối lại.}}{9}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:trajectory}{{2}{9}{Quỹ đạo mô phỏng sau khi điều phối lại}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Giới hạn của nghiên cứu}{9}{subsection.3.2}\protected@file@percent }
 \bibstyle{ieeetr}
 \bibdata{references}
 \bibcite{Galceran2013}{1}
@@ -56,7 +58,6 @@
 \bibcite{Maza2007}{5}
 \bibcite{Avellar2015}{6}
 \bibcite{DiFranco2015}{7}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Đe dọa đối với tính hợp lệ}{10}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Kết luận}{10}{section.4}\protected@file@percent }
 \bibcite{Gerkey2004}{8}
 \bibcite{Dias2006}{9}

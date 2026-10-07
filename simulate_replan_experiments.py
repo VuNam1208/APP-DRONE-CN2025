@@ -5,7 +5,8 @@ Offline kinematic experiment harness for multi-UAV fault replan.
 Produces Table-3 style metrics (eta, T_fin, L_max, N_c, T_react) for:
   S1 lost-link mid-mission, S2 low-battery fail, S3 dense residual
 x strategies:
-  B0 no replan, B1 serpentine remap without CAA, Proposed remap+CAA
+  B0 no replan, B1 contiguous residual handoff without CAA,
+  Proposed contiguous residual handoff + CAA
 
 Does NOT overwrite mission/points*.plan (write_plans=False).
 
@@ -94,6 +95,18 @@ def seed_states(
     return positions
 
 
+def exact_remaining_by_progress(
+    plans: Dict[int, List[Point]], progress: float
+) -> Dict[int, List[Point]]:
+    """Return deterministic unfinished suffixes without nearest-lane ambiguity."""
+    remaining: Dict[int, List[Point]] = {}
+    for drone_id, route in plans.items():
+        index = max(0, int(len(route) * progress) - 1) if progress > 0 else 0
+        index = min(index, len(route) - 1)
+        remaining[drone_id] = list(route[index:])
+    return remaining
+
+
 def b0_routes(
     plans: Dict[int, List[Point]],
     positions: Dict[int, Point],
@@ -119,13 +132,26 @@ def run_strategy(
     uav_ids = sorted(plans.keys())
     failed = scenario.failed
     alive = [i for i in uav_ids if i != failed]
+    exact_remaining = exact_remaining_by_progress(plans, scenario.progress)
+    residual_targets = []
+    for drone_id in [failed] + alive:
+        residual_targets.extend(exact_remaining[drone_id])
+    targets = unique_window(residual_targets)
+
+    adjacent_handoff = strategy != "Greedy" and scenario.progress > 0.0
 
     coord = ReplanCoordinator(
         mission_dir,
         ReplanConfig(
             enabled=True,
             monitor_indices=tuple(uav_ids),
-            remap_mode="waypoints" if strategy == "Greedy" else "serpentine",
+            remap_mode="waypoints" if (strategy == "Greedy" or adjacent_handoff) else "serpentine",
+            local_only=adjacent_handoff,
+            contiguous_failed_handoff=adjacent_handoff,
+            adaptive_segment_count=strategy == "Adaptive-C",
+            assignment_objective=(
+                "connector" if strategy == "Connector-first" else "makespan"
+            ),
             apply_caa=(strategy in ("Altitude-only", "Delay-only", "Proposed")),
             caa_mode={
                 "Altitude-only": "altitude",
@@ -140,14 +166,19 @@ def run_strategy(
         log_fn=lambda _m: None,
     )
     positions = seed_states(coord, plans, scenario.progress, scenario.battery)
-    targets = residual_pool(plans, positions, failed, alive)
+    for drone_id, route in exact_remaining.items():
+        coord.set_remaining_waypoints(drone_id, route)
 
     t0 = time.perf_counter()
     if strategy == "B0":
         # Fail latch only; alive keep original remaining missions.
         coord.states[failed].failed = True
         coord.states[failed].in_mission = False
-        routes = b0_routes(plans, positions, alive)
+        routes = {
+            drone_id: list(exact_remaining[drone_id])
+            for drone_id in alive
+            if exact_remaining[drone_id]
+        }
         altitudes = {i: 12.0 for i in routes}
         delays = {i: 0.0 for i in routes}
         speeds = {i: speed_mps for i in routes}
@@ -489,7 +520,7 @@ def main() -> None:
     parser.add_argument(
         "--strategies",
         default="B0,B1,Proposed",
-        help="comma-separated: B0,Greedy,B1,Altitude-only,Delay-only,Proposed",
+        help="comma-separated: B0,Greedy,Connector-first,Fixed-C,Adaptive-C,B1,Altitude-only,Delay-only,Proposed",
     )
     args = parser.parse_args()
     if args.repeats < 1:
@@ -511,7 +542,7 @@ def main() -> None:
         failed_uavs = [int(value) for value in args.failed_uavs.split(",")]
         strategies = [value.strip() for value in args.strategies.split(",") if value.strip()]
         valid_strategies = {
-            "B0", "Greedy", "B1", "Altitude-only", "Delay-only", "Proposed"
+            "B0", "Greedy", "Connector-first", "Fixed-C", "Adaptive-C", "B1", "Altitude-only", "Delay-only", "Proposed"
         }
         unknown = set(strategies) - valid_strategies
         if unknown:

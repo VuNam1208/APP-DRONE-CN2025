@@ -1,2 +1,2 @@
 eta_pct,t_fin_s,l_max_m,cover_radius_m,pool_pts,route_pts,alive,strategy,failed_uav,failure_type,failure_progress,failure_time_s,speed_mps,d_safe_m,n_c_before,n_c_after,t_react_s,uav_ids,completion_times_s,simulation_end_s,configured_failure_progress,playback_x,exported_at
-100.0,15.7,438.3,8.0,32,32,3,Proposed,1,lost_link,0.418585,25.976548000471666,30.0,15.0,0,0,3.003,"[1,2,3,4]","{""2"":47.74922600015998,""3"":55.457180000375956,""4"":47.74922600015998}",55.457180000375956,0.4,10.0,2026-09-30T16:42:15
+100.0,43.1,1232.5,8.0,32,32,3,Proposed,1,lost_link,0.422472,26.160796999465674,30.0,15.0,0,0,3.002,"[1,2,3,4]","{""2"":76.91951900022104,""3"":83.61666899989359,""4"":73.61365799908526}",83.61666899989359,0.4,10.0,2026-09-30T17:50:13

@@ -3,8 +3,8 @@
   "not_sitl": true,
   "mission_layout": "adjacent",
   "mission_hash": "a50ebace4f217729",
-  "code_hash": "3491249b50a28eba",
-  "git_revision": "dc8edfe",
+  "code_hash": "a2f73228732f24ff",
+  "git_revision": "79ea314",
   "repeats": 30,
   "progresses": [
     0.2,

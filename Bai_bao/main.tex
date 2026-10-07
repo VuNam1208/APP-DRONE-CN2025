@@ -29,6 +29,8 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 \captionsetup{font=small,labelfont=bf,labelsep=period,skip=6pt}
 \renewcommand{\figurename}{Hình}
 \renewcommand{\tablename}{Bảng}
@@ -72,7 +74,7 @@
 
 \begin{document}
 \begin{center}
-{\fontsize{12}{14}\selectfont\bfseries\MakeUppercase{Online Mission Reallocation for Multi-UAV Coverage after Failures Using Residual Remapping and Conflict Mitigation}\par}
+{\fontsize{12}{14}\selectfont\bfseries\MakeUppercase{Online Residual-Route Reallocation for Multi-UAV Missions after Failures with Conflict Mitigation}\par}
 \ifanonymous\else
 \vspace{4pt}
 {\bfseries Vu Dinh Nam$^{*}$\par}
@@ -91,20 +93,20 @@ Published:\par
 \vspace{8pt}
 \textbf{KEYWORDS}\par
 Multi-UAV systems\par
-Coverage planning\par
+Residual-route handoff\par
 Failure recovery\par
 Online remapping\par
-Conflict avoidance
+Conflict mitigation
 \end{minipage}\hfill
 \begin{minipage}[t]{0.74\textwidth}
 \small
 \textbf{ABSTRACT}\par
-Loss of communication or insufficient energy during a mission can interrupt multi-unmanned-aerial-vehicle coverage because vehicle-level failsafe mechanisms do not redistribute unfinished work. This paper presents a centralized recovery layer for a ground control station. The method detects failures from telemetry, merges residual waypoints, repartitions the remaining work into serpentine strips, prioritizes altitude stratification, and uses restart-time offsets as a fallback before generating new QGroundControl/PX4 mission representations. The main evaluation covers 128 deterministic scenario--strategy configurations, with runtime measured over 30 repetitions per configuration. At the selected 8-m waypoint-matching radius, all residual waypoints are matched on the main mission geometry; sensitivity analysis shows that this metric decreases substantially at smaller radii. A separate continuous closest-approach calculation detects predicted conflicts in 23 of 48 remapping-only configurations (9 of 32 unique route geometries). The proposed layer yields no rule violations in these configurations, verifying that its implementation satisfies the prescribed separation rule. These point-kinematic results do not constitute a flight-safety guarantee because PX4 software-in-the-loop tests, vertical transitions, wind, vehicle dynamics, communication delays, and field experiments are not yet included.
+When a UAV loses communication or can no longer continue because of insufficient energy, its unfinished survey route must be reassigned to the remaining vehicles. This paper presents a ground-control-station procedure for handing over that residual route without replanning the entire mission. The uncompleted routes of the active UAVs are retained, whereas the failed UAV's route is divided into contiguous segments that may be reversed and assigned to the survivors. Candidate assignments are ranked first by their projected maximum route length, then by load imbalance and connecting distance. The resulting missions use separate altitude layers; delayed starts are retained as a fallback. Evaluation covered 128 deterministic scenario--strategy configurations, with 30 repetitions used to characterize computation time. All residual waypoints were retained in the 48 reallocation configurations. Before conflict mitigation, continuous closest-approach evaluation found separation-rule violations in 44 configurations; altitude stratification reduced this number to zero under the stated point-kinematic assumptions. The mean route-length imbalance ratio was 1.038. This preservation of route order came at a substantial cost: estimated completion time was 3.24--4.90 times that of a Greedy baseline allowed to reorder the geometry. Under the same constraints, the proposed route-length criterion gave a modest improvement over connector-first assignment, while adaptive selection of the segment count provided no further benefit. The study does not establish sensor coverage, energy feasibility, preservation of general mission-item semantics, safety during altitude transitions, or flight safety.
 \end{minipage}
 
 \vspace{10pt}
 \begin{center}
-{\fontsize{12}{14}\selectfont\bfseries\MakeUppercase{Điều phối lại nhiệm vụ bao phủ đa UAV sau sự cố bằng tái phân vùng trực tuyến và giảm xung đột}\par}
+{\fontsize{12}{14}\selectfont\bfseries\MakeUppercase{Điều phối lại tuyến dư cho nhiệm vụ đa UAV sau sự cố và giảm xung đột}\par}
 \ifanonymous\else
 \vspace{4pt}
 {\bfseries Vũ Đình Nam$^{*}$\par}
@@ -123,15 +125,15 @@ Ngày đăng:\par
 \vspace{8pt}
 \textbf{TỪ KHÓA}\par
 Hệ thống đa UAV\par
-Lập đường bao phủ\par
+Bàn giao tuyến dư\par
 Phục hồi sau sự cố\par
-Tái phân vùng trực tuyến\par
-Tránh xung đột
+Điều phối lại trực tuyến\par
+Giảm xung đột
 \end{minipage}\hfill
 \begin{minipage}[t]{0.74\textwidth}
 \small
 \textbf{TÓM TẮT}\par
-Sự cố mất liên lạc hoặc thiếu năng lượng trong khi bay có thể làm gián đoạn nhiệm vụ bao phủ đa UAV, vì cơ chế an toàn của từng phương tiện không phân phối lại phần việc chưa hoàn thành. Bài báo trình bày một cơ chế phục hồi tập trung tại trạm điều khiển mặt đất. Sau khi phát hiện sự cố từ dữ liệu trạng thái, hệ thống hợp nhất các waypoint còn lại, chia lại vùng quét thành các dải serpentine, ưu tiên phân tầng độ cao và dùng lệch thời gian khởi động như cơ chế dự phòng trước khi sinh nhiệm vụ QGroundControl/PX4 mới. Ma trận thực nghiệm chính gồm 128 cấu hình kịch bản--chiến lược xác định, với thời gian tính toán được đo qua 30 lần lặp cho mỗi cấu hình. Tại bán kính đối sánh waypoint $8\,\mathrm{m}$ đã chọn, toàn bộ waypoint còn lại được đối sánh trên hình học nhiệm vụ chính; phân tích độ nhạy cho thấy chỉ số này giảm đáng kể ở các bán kính nhỏ hơn. Một phép tính khoảng cách tiếp cận liên tục riêng biệt phát hiện xung đột trong 23/48 cấu hình không CAA (9/32 hình học tuyến khác nhau). Lớp đề xuất không còn vi phạm quy tắc trong các cấu hình này, qua đó kiểm chứng phần cài đặt tuân thủ điều kiện phân tách đã quy định. Kết quả mới giới hạn ở mô hình động học điểm, chưa xét PX4 SITL, chuyển tầng độ cao, gió, động lực học phương tiện, độ trễ truyền thông và bay thực nghiệm.
+Khi một UAV mất liên lạc hoặc không thể tiếp tục nhiệm vụ do thiếu năng lượng, phần tuyến khảo sát còn lại cần được chuyển cho các UAV đang hoạt động. Bài báo đề xuất một quy trình điều phối tại trạm mặt đất, trong đó các tuyến chưa hoàn thành của UAV còn hoạt động được giữ nguyên, còn tuyến dư của UAV gặp sự cố được chia thành các đoạn liên tục để bàn giao. Mỗi đoạn có thể được đảo chiều; phương án gán được lựa chọn lần lượt theo chiều dài tuyến cực đại dự kiến, độ lệch tải và quãng đường nối. Nhiệm vụ sau điều phối sử dụng các tầng độ cao riêng biệt, đồng thời giữ cơ chế lệch thời điểm khởi động làm phương án dự phòng. Thực nghiệm gồm 128 cấu hình kịch bản--chiến lược xác định; mỗi cấu hình được lặp 30 lần để khảo sát thời gian tính toán. Trong 48 cấu hình có điều phối lại, toàn bộ điểm đường bay còn lại đều được bảo toàn. Trước khi áp dụng lớp giảm xung đột, phép đánh giá khoảng cách tiếp cận liên tục phát hiện 44 cấu hình vi phạm quy tắc phân tách; phân tầng độ cao đưa con số này về 0 theo các giả thiết động học điểm đã nêu. Tỷ số mất cân bằng chiều dài tuyến trung bình là 1,038. Tuy nhiên, việc giữ thứ tự tuyến làm thời gian hoàn thành ước lượng cao gấp 3,24--4,90 lần phương pháp tham lam được phép sắp xếp lại hình học. Khi so sánh dưới cùng tập ràng buộc, tiêu chí chiều dài tuyến chỉ cải thiện ở mức khiêm tốn so với cách ưu tiên quãng nối; lựa chọn số đoạn thích nghi không đem lại lợi ích bổ sung. Kết quả chưa chứng minh vùng phủ cảm biến, khả thi năng lượng, khả năng bảo toàn đầy đủ ngữ nghĩa lệnh nhiệm vụ, an toàn khi chuyển tầng độ cao hoặc an toàn bay thực tế.
 \end{minipage}
 
 \ifanonymous\else
@@ -142,190 +144,186 @@ Sự cố mất liên lạc hoặc thiếu năng lượng trong khi bay có th�
 % =========================================================
 \section{Giới thiệu}
 
-Đội hình nhiều UAV ngày càng được sử dụng cho nhiệm vụ bao phủ trong tìm kiếm cứu nạn, đánh giá thiên tai và giám sát môi trường. Vận hành song song giúp rút ngắn thời gian hoàn thành và tăng khả năng chịu lỗi ở mức hệ thống. Tuy nhiên, một hoặc nhiều UAV có thể rời đội hình trước khi kết thúc nhiệm vụ do mất liên lạc, kích hoạt chế độ an toàn của bộ điều khiển bay, hoặc năng lượng còn lại không đủ để tiếp tục bao phủ.
+Đội nhiều UAV có thể rút ngắn thời gian thực hiện các nhiệm vụ khảo sát trên diện rộng như tìm kiếm cứu nạn, đánh giá thiên tai và giám sát môi trường. Lợi thế này phụ thuộc vào khả năng duy trì phần việc chung khi một phương tiện rời đội hình. Trong thực tế, UAV có thể mất liên lạc, chuyển sang chế độ an toàn hoặc không còn đủ năng lượng để tiếp tục. Nếu kế hoạch bay không được điều chỉnh, phần tuyến được giao cho UAV đó sẽ bị bỏ dở.
 
-Hầu hết quy trình GCS vẫn dựa trên phân công tĩnh trước khi bay: mỗi UAV nhận một vùng và một chuỗi waypoint cố định. Failsafe như Return-to-Launch (RTL) bảo vệ phương tiện gặp lỗi, nhưng không bảo đảm phần vùng chưa được quét sẽ được chuyển cho các UAV còn hoạt động. Vì vậy, một cơ chế phục hồi cấp đội bay phải đồng thời trả lời ba câu hỏi: phần việc nào thực sự còn lại, phân phối phần việc đó như thế nào, và làm sao khởi động các nhiệm vụ mới mà không tạo thêm xung đột dự báo.
+Các trạm điều khiển mặt đất (GCS) thường phân vùng và tạo tuyến cho từng UAV trước khi cất cánh. Những hành động an toàn như quay về điểm cất cánh (RTL) giúp bảo vệ phương tiện gặp sự cố, nhưng không chuyển phần việc còn lại cho các thành viên khác. Phục hồi nhiệm vụ ở cấp đội bay vì thế không chỉ là phát hiện UAV lỗi. Hệ thống còn phải xác định đúng phần tuyến chưa thực hiện, phân chia phần tuyến này mà không phá vỡ kế hoạch đang chạy của các UAV còn lại, rồi tạo nhiệm vụ thay thế với các điều kiện phân tách phù hợp.
 
-Các nghiên cứu liên quan được tổng hợp theo ba thành phần của bài toán: lập đường bao phủ, tái phân công chịu lỗi và tránh xung đột khi khởi động lại.
+Lập đường bao phủ đã được nghiên cứu rộng rãi cho robot~\cite{Galceran2013} và UAV~\cite{Cabreira2019,Fevgas2022}. Các phương pháp quen thuộc phân rã khu vực thành tế bào và tạo đường quét song song qua lại kiểu lawnmower hoặc boustrophedon~\cite{Choset2001}. Đối với đội nhiều UAV, khu vực có thể được chia thành các đa giác con để giao cho từng phương tiện~\cite{Maza2007,Avellar2015}; một số nghiên cứu còn đưa mức tiêu thụ năng lượng vào quá trình lập tuyến~\cite{DiFranco2015}. Phần lớn các phương pháp này xây dựng kế hoạch trước chuyến bay. Bài toán được xét ở đây xuất hiện muộn hơn: đội bay đã thực hiện một phần nhiệm vụ thì số UAV hoạt động giảm, nên chỉ phần tuyến còn lại cần được xử lý.
 
-\noindent\textbf{Lập đường bao phủ đa UAV.}
-Bài toán CPP đã được khảo sát rộng cho robot nói chung~\cite{Galceran2013} và cho UAV nói riêng~\cite{Cabreira2019,Fevgas2022}. Các hướng cổ điển dùng phân tách tế bào và quỹ đạo lawnmower hoặc boustrophedon~\cite{Choset2001}. Với đa UAV, các công trình tiêu biểu phân tách đa giác rồi gán mỗi phần cho một phương tiện~\cite{Maza2007,Avellar2015}, hoặc tối ưu tuyến bao phủ có nhận thức năng lượng~\cite{DiFranco2015}. Bài này giải bài toán khi $|\Uset|$ giảm trong quá trình thực hiện nhiệm vụ: phần việc còn lại được phân chia lại bằng bộ lập tuyến serpentine đơn giản trên GCS, thay vì lập lại toàn bộ kế hoạch ngoại tuyến trước chuyến bay.
+Ở góc độ phân công, bài toán phân bổ nhiệm vụ đa robot (MRTA) đã được hệ thống hóa trong~\cite{Gerkey2004}. Đấu giá và các cơ chế dựa trên thị trường hỗ trợ phân công động~\cite{Dias2006}, trong khi CBBA và các biến thể đồng thuận--đấu giá cho phép các tác nhân đạt phương án phân bổ theo cách phi tập trung~\cite{Choi2009,Brunet2008}. Các lược đồ phân bổ phân tán cho đội UAV cũng đã được khảo sát từ sớm~\cite{Lemaire2004}. Với tình huống đội hình suy giảm, ALLIANCE cho thấy robot còn hoạt động có thể tiếp nhận nhiệm vụ của thành viên gặp lỗi~\cite{Parker1998}; các nghiên cứu gần đây tiếp tục sử dụng cơ chế thị trường hoặc đồng thuận để lập kế hoạch lại cho UAV hỏng~\cite{Barnawi2025,Zeng2026,Giacomossi2026}.
 
-\medskip
-\noindent\textbf{Phân bổ nhiệm vụ và phục hồi sau sự cố.}
-Phân loại bài toán phân bổ nhiệm vụ đa robot (MRTA) được hệ thống hóa trong~\cite{Gerkey2004}. Các cơ chế theo thị trường (auction/market-based) là hướng phổ biến để phân công động~\cite{Dias2006}. Thuật toán CBBA và các biến thể đồng thuận--đấu giá cho phép phân bổ phi tập trung, bền vững với bất đồng nhận thức tình huống~\cite{Choi2009,Brunet2008}. Các lược đồ phân bổ phân tán trong ngữ cảnh đa UAV cũng đã được khảo sát sớm~\cite{Lemaire2004}.
+Một hướng nghiên cứu khác tập trung vào tránh va chạm cục bộ. Phương pháp chướng ngại vận tốc (Velocity Obstacles)~\cite{Fiorini1998} và chướng ngại vận tốc tương hỗ~\cite{vandenBerg2008,vandenBerg2011} điều chỉnh chuyển động dựa trên quan hệ vận tốc giữa các tác nhân. Đối với UAV, xử lý trên mặt phẳng ngang có thể được mở rộng sang ba chiều hoặc kết hợp với thay đổi độ cao~\cite{Ferrera2018,Huang2019}. Trong nghiên cứu này, xung đột được xử lý ở mức nhiệm vụ bằng tầng độ cao và thời điểm khởi động, không phải bằng điều khiển vận tốc phản ứng. Lớp xử lý này được ký hiệu là CAA và chỉ nhằm giảm vi phạm quy tắc phân tách trong mô hình sử dụng.
 
-\noindent\emph{Phục hồi khi đội hình suy giảm.}
-Kiến trúc chịu lỗi cổ điển như ALLIANCE minh họa khả năng robot còn lại tiếp nhận nhiệm vụ khi một thành viên suy giảm~\cite{Parker1998}. Gần đây, cơ chế dựa trên thị trường và đồng thuận đã được mở rộng cho bài toán lập kế hoạch lại khi UAV hỏng trong tìm kiếm cứu nạn hoặc khi đội hình suy giảm~\cite{Barnawi2025,Zeng2026,Giacomossi2026}. Các nghiên cứu này cùng dựa trên việc phát hiện tác nhân rời hệ thống và phân bổ lại phần việc còn lại. Trong bài báo này, thao tác đó được thực hiện tập trung tại GCS bằng quỹ đạo serpentine, sau đó áp dụng lớp giảm xung đột (Conflict-Avoidance Algorithm, CAA) theo độ cao và thời điểm khởi động.
+PX4, MAVLink và các giao diện lập trình nhiệm vụ cung cấp dữ liệu trạng thái cũng như cơ chế trao đổi lệnh cần thiết để xây dựng GCS~\cite{Meier2015,MAVSDK}. PX4 đã hỗ trợ các hành động an toàn cho từng phương tiện, chẳng hạn giữ vị trí, quay về hoặc hạ cánh~\cite{PX4Failsafe}. Tuy nhiên, chuỗi xử lý từ trạng thái sự cố của một UAV đến bàn giao tuyến chưa hoàn thành và tạo nhiệm vụ mới cho cả đội vẫn chưa được giải quyết như một quy trình thống nhất tại GCS.
 
-\medskip
-\noindent\textbf{Tránh xung đột và nền tảng thực thi.}
-Velocity Obstacles~\cite{Fiorini1998} và các phương pháp reciprocal velocity obstacle~\cite{vandenBerg2008,vandenBerg2011} là những phương pháp hình học điển hình cho tránh va chạm cục bộ. Trong hệ UAV, xử lý chuyển động trên mặt phẳng ngang có thể được mở rộng sang không gian ba chiều hoặc kết hợp với điều chỉnh độ cao~\cite{Ferrera2018,Huang2019}. Nghiên cứu này sử dụng phân tách không--thời gian ở mức nhiệm vụ, thông qua tầng độ cao và thời điểm khởi động, thay vì điều khiển vận tốc thời gian thực của từng UAV.
+Nghiên cứu này tiếp cận khoảng trống trên bằng bài toán bàn giao tuyến dư có bảo toàn thứ tự. Tuyến chưa hoàn thành của các UAV đang hoạt động được giữ nguyên; chỉ tuyến của UAV gặp sự cố được chia thành các đoạn liên tục để gán lại và, khi có lợi, đảo chiều. Cách đặt bài toán này khác với việc đấu giá lại các nhiệm vụ rời rạc hoặc tối ưu lại toàn bộ thứ tự thực hiện. Đầu ra là các chuỗi điểm đường bay có thứ tự dùng để tạo lại nhiệm vụ tại GCS. Vì vậy, đóng góp của bài báo nằm ở cách mô hình hóa và tích hợp quy trình phục hồi tuyến dư, không phải ở một bộ giải MRTA tổng quát hay một phương pháp tối ưu toàn cục.
 
-\noindent\emph{Nền tảng GCS.}
-Hệ sinh thái PX4/MAVLink cùng các API nhiệm vụ và dữ liệu trạng thái cung cấp hạ tầng thực thi cho GCS thực nghiệm~\cite{Meier2015,MAVSDK}. Tài liệu PX4 mô tả các hành động an toàn như giữ vị trí, quay về hoặc hạ cánh đối với phương tiện gặp sự cố~\cite{PX4Failsafe}. Từ phạm vi chức năng đó, nghiên cứu này xác định một khoảng trống ở cấp đội bay: các phần việc chưa hoàn thành không được tự động phân bổ lại cho những UAV còn hoạt động.
-
-Các công trình trên chưa giải quyết đầy đủ chuỗi xử lý tại GCS, từ trạng thái failsafe của từng UAV đến xác định phần việc chưa hoàn thành, tái phân vùng và sinh nhiệm vụ mới có lịch khởi động. Nghiên cứu này tập trung vào khâu tích hợp đó. Thuật toán phân vùng và CAA có độ phức tạp thấp, phù hợp với yêu cầu tính toán trực tuyến tại GCS, nhưng không hướng tới nghiệm tối ưu toàn cục.
-
-Bài báo xem xét khả năng một GCS tập trung khôi phục phần việc bao phủ chưa hoàn thành sau khi mất một UAV với thời gian tính toán đủ ngắn để sử dụng trong quá trình thực hiện nhiệm vụ. Trong bài báo, ``trực tuyến'' chỉ việc lập kế hoạch lại từ trạng thái nhiệm vụ hiện thời sau khi phát hiện sự cố, thay vì tối ưu ngoại tuyến trước chuyến bay; thuật ngữ này không hàm ý rằng vòng nạp lệnh và động lực học bay đã được xác thực thời gian thực. Phạm vi nghiên cứu không bao gồm tối ưu phân vùng trước chuyến bay hoặc chứng minh an toàn ở cấp điều khiển. Các đóng góp chính gồm:
+Trong phạm vi bài báo, ``trực tuyến'' được hiểu là lập kế hoạch lại từ trạng thái hiện thời sau khi phát hiện sự cố. Khái niệm này không đồng nghĩa với việc toàn bộ vòng truyền lệnh và động lực học bay đã được xác thực theo thời gian thực. Nghiên cứu tập trung vào logic điều phối và thời gian tính toán tại GCS, với các đóng góp chính sau:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item một mô hình sự kiện phân biệt mất liên lạc, pin thấp và chế độ failsafe khi nhiệm vụ chưa hoàn thành với RTL bình thường sau khi hoàn thành;
-  \item một thuật toán tái phân vùng phần việc còn lại, có khống chế số waypoint và tạo các dải serpentine rời nhau;
-  \item một lớp CAA nhẹ ưu tiên phân tầng độ cao và hỗ trợ lệch thời gian khởi động khi cần, cùng cơ chế sinh biểu diễn nhiệm vụ MAVLink/QGroundControl giữa chuyến bay;
-  \item một quy trình thực nghiệm có đối chứng, phân tích độ nhạy, tách thành phần CAA và lưu dữ liệu thô để kiểm tra lại kết quả.
+  \item mô hình sự kiện phân biệt mất liên lạc, pin thấp và chế độ an toàn khi nhiệm vụ còn dang dở với RTL bình thường sau khi hoàn thành;
+  \item phương pháp chia tuyến dư thành các đoạn liên tục và bàn giao cho nhiều UAV, trong khi vẫn giữ phần tuyến chưa hoàn thành của các UAV đang hoạt động;
+  \item tiêu chí gán xét lần lượt chiều dài tuyến cực đại dự kiến, độ lệch tải và quãng chuyển tiếp, kết hợp với lớp giảm xung đột ở mức nhiệm vụ và cơ chế tạo lại nhiệm vụ qua MAVLink và QGroundControl;
+  \item quy trình đánh giá có đối chứng, có thí nghiệm tách thành phần, kiểm tra các biến thể hình học và lưu dữ liệu thô phục vụ tái lập kết quả.
 \end{enumerate}
-Các phần tiếp theo trình bày mô hình bài toán, phương pháp điều phối lại, thiết kế thực nghiệm, kết quả và giới hạn của nghiên cứu.
+Phần tiếp theo trình bày mô hình bài toán và phương pháp điều phối, sau đó mô tả thiết kế thực nghiệm, phân tích kết quả và thảo luận các giới hạn của nghiên cứu.
 
 % =========================================================
 \section{Phương pháp nghiên cứu}
 
-\subsection{Mô hình đội bay và nhiệm vụ}
+\subsection{Mô hình bài toán và điều kiện sự cố}
 
-Xét đội bay $\Uset = \{u_{1},\ldots,u_{N}\}$ thực hiện nhiệm vụ bao phủ dưới trạm điều khiển tập trung. Mỗi UAV $u_{i}$ tại thời điểm $t$ có vị trí $p_{i}(t)=(\varphi_{i},\lambda_{i})$, độ cao tương đối $h_{i}(t)$, phần trăm pin còn lại $b_{i}(t)\in[0,100]$, trạng thái liên lạc $\ell_{i}(t)\in\{0,1\}$, và danh sách waypoint có thứ tự $\pi_{i}=(w_{i,1},\ldots,w_{i,n_{i}})$.
+Xét đội bay $\Uset = \{u_{1},\ldots,u_{N}\}$ thực hiện nhiệm vụ bao phủ dưới trạm điều khiển tập trung. Mỗi UAV $u_{i}$ tại thời điểm $t$ có vị trí $p_{i}(t)=(\varphi_{i},\lambda_{i})$, độ cao tương đối $h_{i}(t)$, phần trăm pin còn lại $b_{i}(t)\in[0,100]$, trạng thái liên lạc $\ell_{i}(t)\in\{0,1\}$, và danh sách điểm đường bay có thứ tự $\pi_{i}=(w_{i,1},\ldots,w_{i,n_{i}})$.
 
-Gọi $k_{i}(t)$ là chỉ số waypoint chưa hoàn thành gần nhất ước lượng từ $p_{i}(t)$. Tập waypoint còn lại của UAV $i$ là:
+Gọi $k_{i}(t)$ là chỉ số điểm đường bay hiện thời do bộ mô phỏng hoặc bộ điều khiển cung cấp. Chuỗi điểm còn lại có thứ tự của UAV $i$ là:
 \begin{equation}
-  R_{i}(t)=\{w_{i,k_{i}(t)},\ldots,w_{i,n_{i}}\}.
+  R_{i}(t)=\bigl(w_{i,k_{i}(t)},\ldots,w_{i,n_{i}}\bigr).
 \end{equation}
-Khi sự cố xảy ra, tập waypoint còn lại của toàn đội được định nghĩa:
+Khi sự cố xảy ra, phần việc còn lại của toàn đội được biểu diễn bằng một họ các chuỗi có thứ tự:
 \begin{equation}
-  \Premain(t_{f})=R_{f}(t_{f})\cup\Bigl(\bigcup_{u_{j}\in\Ua} R_{j}(t_{f})\Bigr).
+  \Premain(t_{f})=\bigl\{R_f(t_f)\bigr\}\uplus
+  \bigl\{R_j(t_f):u_j\in\Ua\bigr\},
 \end{equation}
-Việc lập kế hoạch lại áp dụng cho toàn bộ phần nhiệm vụ chưa hoàn thành của đội bay, thay vì chỉ $R_f$, nhằm cân bằng lại tải và dựng lại các dải không chồng lấn trên miền công việc còn lại. Vì vậy, B0 là đối chứng cho trường hợp không phục hồi phần việc của UAV lỗi, không phải đối chứng có cùng khối lượng nhiệm vụ với các phương án tái phân vùng.
+trong đó $\uplus$ ký hiệu hợp rời để các điểm trùng tọa độ vẫn được tính theo nhiệm vụ gốc của chúng.
+Khi lập kế hoạch lại, mỗi UAV còn hoạt động tiếp tục thực hiện chuỗi $R_j$ của mình; riêng $R_f$ được chia thành các đoạn liên tục để bàn giao. Biểu diễn theo chuỗi giúp duy trì thứ tự các điểm trên từng làn quét, đồng thời loại phần tiền tố đã hoàn thành khỏi bài toán phân bổ.
 
-\subsection{Sự kiện sự cố}
-
-UAV $u_{f}$ được tuyên bố sự cố tại $t_{f}$ nếu thỏa một trong các điều kiện sau trong lúc vẫn đang mang nhiệm vụ bao phủ chưa xong:
+UAV $u_{f}$ được xác định là gặp sự cố tại thời điểm $t_f$ nếu nhiệm vụ của nó chưa hoàn thành và xảy ra ít nhất một trong các điều kiện sau:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item \textbf{Mất liên lạc / mất điều khiển (chỉ báo thay thế):} không nhận dữ liệu trạng thái hợp lệ quá $\Tlost$, trong khi UAV đang thực hiện nhiệm vụ hoặc đang bay ($h_{i}>1\,\mathrm{m}$);
+  \item \textbf{Mất liên lạc / mất điều khiển:} không nhận dữ liệu trạng thái hợp lệ quá $\Tlost$, trong khi UAV đang thực hiện nhiệm vụ hoặc đang bay ($h_{i}>1\,\mathrm{m}$);
   \item \textbf{Sự cố năng lượng:} $b_{f}(t_{f})\le\bmin$;
-  \item \textbf{Chế độ failsafe:} trạng thái bay thuộc $\{\mathrm{RTL},\mathrm{LAND},\mathrm{FAILSAFE},\mathrm{RETURN}\}$ khi nhiệm vụ chưa hoàn thành.
+  \item \textbf{Chế độ an toàn:} trạng thái bay thuộc $\{\mathrm{RTL},\mathrm{LAND},\mathrm{FAILSAFE},\mathrm{RETURN}\}$ khi nhiệm vụ chưa hoàn thành.
 \end{enumerate}
-RTL bình thường sau khi hoàn thành được loại trừ bằng cờ trạng thái đang thực hiện nhiệm vụ. Mỗi UAV chỉ được ghi nhận sự cố một lần để tránh kích hoạt lặp.
+Trạng thái RTL sau khi hoàn thành nhiệm vụ không được coi là sự cố. Mỗi UAV chỉ kích hoạt quy trình điều phối lại một lần cho cùng một sự kiện.
 
-\subsection{Mục tiêu điều phối lại}
-
-Đặt $\Ua=\Uset\setminus\{u_{f}\}$ là tập UAV còn hoạt động (có GPS hợp lệ). GCS cần tính các kế hoạch mới $\{\pi'_{j}\}$ bao phủ $\Premain$. Phương pháp được đánh giá trực tiếp bằng thời gian hoàn thành dự kiến $\Tfin$, quãng đường cực đại
+Đặt $\Ua=\Uset\setminus\{u_{f}\}$ là tập UAV còn hoạt động và có dữ liệu định vị hợp lệ. Từ $\Premain$, GCS xây dựng các tuyến mới $\{\pi'_{j}\}$ cho những UAV này. Chất lượng phương án được đặc trưng bởi thời gian hoàn thành dự kiến $\Tfin$, chiều dài tuyến cực đại
 \begin{equation}
   \Lmax=\max_{u_{j}\in\Ua}\mathrm{Length}(\pi'_{j})
 \end{equation}
-phản ánh mất cân bằng tải, và số cặp xung đột dự báo $\Nc$. Một cặp được xem là tách an toàn trong mô hình nếu thỏa ít nhất một trong hai điều kiện ngang hoặc đứng:
+và số cặp xung đột dự báo $\Nc$. Tỷ số $I_L=L_{\max}/L_{\mathrm{mean}}$ biểu thị mức mất cân bằng chiều dài giữa các tuyến. Trong mô hình, hai UAV được coi là bảo đảm phân tách nếu thỏa điều kiện ngang hoặc điều kiện đứng:
 \begin{equation}
-  \bigl\|\hat{p}_{i}(t)-\hat{p}_{j}(t)\bigr\|\ge\dsaf
+  d_{\mathrm{geo}}\!\left(\hat{p}_{i}(t),\hat{p}_{j}(t)\right)\ge\dsaf
   \quad\lor\quad
   |h_i-h_j|\ge\Delta h_{\mathrm{clear}},
   \qquad\forall\,i\neq j,\;\forall\,t\in[t_{f},\Tfin],
 \end{equation}
-với $\Delta h_{\mathrm{clear}}=\Dh-1$ (mặc định $4\,\mathrm{m}$ khi $\Dh=5\,\mathrm{m}$).
+Trong đó, $d_{\mathrm{geo}}$ là khoảng cách ngang tính từ tọa độ địa lý; $\Delta h_{\mathrm{clear}}=\Dh-1$ là ngưỡng phân tách đứng, bằng $4\,\mathrm{m}$ khi $\Dh=5\,\mathrm{m}$.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig1_pipeline.png}
-  \caption{Quy trình điều phối lại quỹ đạo đa UAV sau sự cố bằng tái phân vùng serpentine.}
+  \begin{tikzpicture}[
+    node distance=2mm,
+    box/.style={draw,rounded corners=2pt,align=center,minimum height=10mm,text width=0.132\linewidth,font=\scriptsize},
+    arr/.style={-{Latex[length=1.6mm]},semithick}
+  ]
+    \node[box] (detect) {Phát hiện\\sự cố};
+    \node[box,right=of detect] (suffix) {Trích xuất\\tuyến dư};
+    \node[box,right=of suffix] (keep) {Giữ tuyến\\UAV còn lại};
+    \node[box,right=of keep] (handoff) {Chia và gán\\đoạn liên tục};
+    \node[box,right=of handoff] (caa) {CAA\\cao + lệch khởi động};
+    \node[box,right=of caa,fill=green!8] (export) {Xuất \texttt{.plan}\\nạp/khởi động};
+    \draw[arr] (detect)--(suffix); \draw[arr] (suffix)--(keep);
+    \draw[arr] (keep)--(handoff); \draw[arr] (handoff)--(caa);
+    \draw[arr] (caa)--(export);
+  \end{tikzpicture}
+  \caption{Quy trình điều phối lại nhiệm vụ.}
   \label{fig:pipeline}
 \end{figure}
 
 % =========================================================
 \subsection{Quy trình điều phối lại}
 
-Quy trình đề xuất gồm năm giai đoạn thực thi tại GCS.
+Hình~\ref{fig:pipeline} tóm tắt năm bước của quy trình điều phối. GCS cập nhật trạng thái của UAV $i$ dưới dạng $s_{i}=(p_{i},h_{i},b_{i},\mathrm{mode}_{i},t^{\mathrm{last}}_{i},\mathrm{inMission}_{i})$ và kiểm tra điều kiện sự cố sau mỗi khoảng $\Delta t\approx 1\,\mathrm{s}$.
 
-\noindent\textbf{Giám sát sự cố và trích xuất phần việc còn lại.}
+Khi một điều kiện ở Mục~2.1 được thỏa mãn, hệ thống ghi nhận thời điểm $t_f$ và khóa sự kiện để không xử lý lặp. Cờ $\mathrm{inMission}_i$ phân biệt sự cố giữa nhiệm vụ với trạng thái RTL thông thường sau khi hoàn thành.
 
-Mỗi kênh dữ liệu trạng thái cập nhật vector $s_{i}=(p_{i},h_{i},b_{i},\mathrm{mode}_{i},t^{\mathrm{last}}_{i},\mathrm{inMission}_{i})$. Bộ phát hiện được kích hoạt định kỳ với chu kỳ $\Delta t\approx 1\,\mathrm{s}$.
-
-UAV được đánh dấu lỗi một lần khi mất dữ liệu trạng thái quá $\Tlost$ trong lúc đang thực hiện nhiệm vụ hoặc còn ở độ cao trên $1\,\mathrm{m}$; hoặc khi đang thực hiện nhiệm vụ và pin giảm dưới $\bmin$ hay chế độ bay chuyển sang RTL/LAND/FAILSAFE/RETURN. Cờ đang thực hiện nhiệm vụ giúp loại trừ trường hợp RTL bình thường sau khi hoàn thành.
-
-\noindent\textbf{Ước lượng phần việc còn lại.}
-
-Waypoint còn lại của mỗi UAV được xác định từ tệp \texttt{.plan} đang sử dụng và vị trí GNSS hiện tại, với mốc tiến độ là waypoint gần nhất. Tập $\Premain$ gồm các waypoint chưa hoàn thành của UAV sự cố và các UAV còn hoạt động. Khi hợp nhất, một điểm chỉ được giữ nếu cách toàn bộ 12 điểm vừa thêm ít nhất $1\,\mathrm{m}$; cửa sổ cục bộ này tránh phép so sánh $O(K^{2})$ khi số waypoint lớn.
-
-\noindent\textbf{Tái phân vùng theo dải kinh độ.}
-
-Tập waypoint còn lại được chuyển thành các vùng quét mới theo các bước sau:
+Trong mô phỏng, chỉ số đoạn đang thực hiện trong tệp \texttt{.plan} xác định chính xác điểm bắt đầu của mỗi chuỗi $R_i$. Khi vận hành trực tiếp, hệ thống ưu tiên chỉ số nhiệm vụ do bộ điều khiển bay cung cấp; nếu dữ liệu này không có, điểm gần vị trí GNSS được dùng để ước lượng tiến độ. Tiền tố đã bay bị loại bỏ, còn thứ tự các điểm trong $R_i$ được giữ nguyên. Các tuyến mới được xây dựng như sau:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item Ước lượng khoảng cách làn $\delta$ từ trung vị khoảng cách lân cận của $\Premain$, giới hạn ở $[5,40]\,\mathrm{m}$; tăng $\delta$ nếu số waypoint dự báo vượt ngân sách nạp nhiệm vụ (khoảng $250$ điểm/UAV);
-  \item Đặt $M'=\min(|\Ua|,|\Premain|)$. Nếu $|\Ua|>|\Premain|$ thì chỉ giữ $M'$ UAV gần $\mathrm{centroid}(\Premain)$ nhất (tránh dải rỗng); ngược lại dùng toàn bộ $\Ua$ có GPS hợp lệ;
-  \item Lập hình chữ nhật bao chung của $\Premain$ và chia đều theo kinh độ thành $M'$ dải không chồng lấn;
-  \item Lùi hai biên kinh độ của mỗi dải vào $\delta/2$, rồi sinh đường lawnmower/serpentine với bước $\delta$; điểm bắt đầu ưu tiên gần $p_{j}(t_{f})$;
-  \item Gán dải theo thứ tự tây $\rightarrow$ đông cho các UAV đã chọn, sắp theo kinh độ hiện tại.
+  \item Khởi tạo $\pi'_j=R_j(t_f)$ cho mọi $u_j\in\Ua$, nghĩa là mỗi UAV giữ nguyên phần tuyến riêng chưa hoàn thành;
+  \item đặt $C=\min(M,|R_f|-1)$ và chia chuỗi có thứ tự $R_f$ thành $C$ đoạn liên tục $Q_1,\ldots,Q_C$ theo chiều dài tích lũy; hai đoạn kề nhau dùng chung điểm biên để không làm mất cạnh của tuyến gốc;
+  \item với mỗi UAV ứng viên, lấy điểm cuối $e_j$ của $R_j$; nếu $R_j$ rỗng thì dùng vị trí hiện tại $p_j(t_f)$;
+  \item xét các tập UAV nhận việc, các hoán vị giữa UAV và đoạn, cùng hai hướng duyệt của mỗi đoạn; các phương án được xếp theo thứ tự từ điển của chiều dài tuyến cực đại, độ lệch tải, tổng quãng nối và quãng nối cực đại;
+  \item nối đoạn đã gán vào $\pi'_j$. Điểm nối trùng trong ngưỡng $1\,\mathrm{m}$ được loại bỏ; các điểm giữa những đoạn khác nhau không được xen kẽ.
 \end{enumerate}
 \begin{equation}
-  \pi'_{j}=\mathrm{Serpentine}\bigl(\mathrm{Inset}(B_{j},\delta/2),\delta,p_{j}(t_{f})\bigr).
+  \sigma^*=\arg\min_{\sigma\in\Sigma}
+  \left(\max_j\widetilde L_j,\
+  \max_j\widetilde L_j-\min_j\widetilde L_j,\ \sum_j c_j,\ \max_j c_j\right),
+  \label{eq:assignment}
 \end{equation}
+Trong~\eqref{eq:assignment}, $\Sigma$ là tập phương án hình thành từ các hoán vị UAV--đoạn và hai hướng duyệt của mỗi đoạn; $c_j$ là quãng nối từ $e_j$ đến đầu đoạn được giao; $\widetilde L_j$ là chiều dài dự kiến từ vị trí hiện tại, qua tuyến riêng, rồi đến đoạn mới. Với vận tốc danh định như nhau, tối thiểu hóa $\max_j\widetilde L_j$ tương đương tối thiểu hóa một xấp xỉ của $\Tfin$. Nếu UAV $j$ nhận đoạn $Q_{\sigma^*(j)}$, tuyến mới được xác định bởi $\pi'_j=R_j\oplus Q_{\sigma^*(j)}$. Cách ghép này cho phép nhiều UAV cùng tiếp nhận tuyến lỗi mà không xen kẽ điểm giữa các đoạn.
 
-\noindent\textbf{Giảm xung đột dự báo bằng phân tầng độ cao và lệch thời gian dự phòng.}
+Hàm mục tiêu ưu tiên chiều dài tuyến cực đại; ba thành phần còn lại chỉ dùng để phân biệt các phương án đồng hạng. Do mô hình chưa xét thời gian quay, quá trình leo hạ, năng lượng và xung đột, giá trị này chỉ là một xấp xỉ của thời gian hoàn thành. Biến thể xét mọi $C\in\{1,\ldots,M\}$ được đưa vào thí nghiệm tách thành phần, nhưng không cải thiện kết quả và không thuộc cấu hình mặc định.
 
-Sau khi sinh serpentine, các quỹ đạo có thể chồng lấn không--thời gian, đặc biệt trên đoạn chuyển tiếp. Lớp giải xung đột ưu tiên:
+Sau bước bàn giao, các tuyến mới vẫn có thể tiến gần nhau trong cùng khoảng thời gian, đặc biệt trên các đoạn chuyển tiếp. Lớp CAA xử lý các trường hợp này theo hai bước:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item \textbf{Phân tầng độ cao:} đặt độ cao tham chiếu chung $h_{\mathrm{ref}}=\max_j h^{0}_{j}$, trong đó $h^{0}_{j}$ lấy từ \texttt{alt\_rel} hiện tại nếu $\ge 5\,\mathrm{m}$, ngược lại dùng $10\,\mathrm{m}$; sau đó gán $h'_{j}=h_{\mathrm{ref}}+\mathrm{rank}(j)\cdot\Dh$. Cách dùng tham chiếu chung ngăn hai tầng bị trùng khi các UAV có độ cao nền khác nhau. Xếp hạng theo pin giảm dần: pin cao hơn $\rightarrow$ rank nhỏ hơn $\rightarrow$ băng thấp hơn và $\tau$ nhỏ hơn. Đây là quy tắc lập lịch xác định để phá hòa, không phải chính sách phân bổ tối ưu năng lượng;
+  \item \textbf{Phân tầng độ cao:} đặt $h_{\mathrm{ref}}=\max_j h^{0}_{j}$, trong đó $h^{0}_{j}$ bằng \texttt{alt\_rel} hiện tại nếu giá trị này không nhỏ hơn $5\,\mathrm{m}$, và bằng $10\,\mathrm{m}$ trong trường hợp ngược lại. Độ cao mới là $h'_{j}=h_{\mathrm{ref}}+\mathrm{rank}(j)\Dh$. Tham chiếu chung ngăn các tầng được gán trùng nhau khi độ cao ban đầu khác nhau. UAV được xếp theo mức pin giảm dần; mức pin cao hơn tương ứng với tầng thấp hơn và thời điểm khởi động sớm hơn. Đây là quy tắc xác định thứ tự, không phải phép tối ưu năng lượng;
   \item \textbf{Lệch thời gian khởi động dự phòng:} $\tau_{j}=\mathrm{rank}(j)\cdot\tauzero$; nếu vẫn còn xung đột dự báo thì tăng thêm $\tau_{j}\mathrel{+}=1+\mathrm{rank}(j)$, lặp tối đa $4$ vòng.
 \end{enumerate}
-Vị trí dự báo $\hat{p}_{j}(t)$ nội suy theo polyline với tốc độ danh định $v\approx 2\,\mathrm{m/s}$. Một xung đột được đếm khi hai UAV có $|h'_{i}-h'_{j}|<(\Dh-1)$ và đi vào quả cầu bán kính $\dsaf$ trong cùng mẫu thời gian ($\Delta t_{\mathrm{sample}}=1\,\mathrm{s}$). Với $\Dh=5\,\mathrm{m}$, ngưỡng bỏ qua kiểm tra ngang là $4\,\mathrm{m}$---đủ để các băng độ cao danh định không bị đếm xung đột. Hình học serpentine đã sinh không bị dịch ngang thêm ở bước này.
+Mức pin chỉ xác định thứ tự, không thay thế cho mô hình tiêu hao năng lượng. Kết quả ở Mục~3 cho thấy lệch thời gian riêng lẻ hầu như không loại bỏ xung đột; thành phần này chỉ được giữ làm phương án dự phòng khi không thể phân tầng độ cao.
 
-\noindent\textbf{Tái sinh nhiệm vụ và khởi động lại.}
+Vị trí dự báo $\hat{p}_{j}(t)$ được nội suy trên đường gấp khúc với vận tốc danh định $v\approx 2\,\mathrm{m/s}$. Một cặp được tính là xung đột nếu, tại cùng một thời điểm lấy mẫu, khoảng cách đứng nhỏ hơn $\Dh-1$ và khoảng cách ngang nhỏ hơn $\dsaf$. Chu kỳ lấy mẫu là $\Delta t_{\mathrm{sample}}=1\,\mathrm{s}$. Với $\Dh=5\,\mathrm{m}$, hai UAV lệch cao ít nhất $4\,\mathrm{m}$ không cần kiểm tra điều kiện ngang. Bước này không làm thay đổi hình học theo phương ngang của các tuyến đã bàn giao.
 
-Các quỹ đạo được xuất theo định dạng \texttt{.plan} của QGroundControl. Mỗi tệp lập kế hoạch lại ghi đè nhiệm vụ đang hoạt động sau khi bản gốc đã được sao lưu. Khi khởi động lại trong lúc đang bay, mọi mục dẫn đường sử dụng lệnh waypoint (MAV\_CMD~$16$), không sử dụng lệnh cất cánh ($22$), và kết thúc bằng RTL ($20$).
+Cuối cùng, các quỹ đạo được xuất theo định dạng \texttt{.plan} của QGroundControl. Mỗi tệp lập kế hoạch lại ghi đè nhiệm vụ đang hoạt động sau khi bản gốc đã được sao lưu. Khi khởi động lại trong lúc đang bay, mọi mục dẫn đường sử dụng lệnh điểm đường bay (MAV\_CMD~$16$), không sử dụng lệnh cất cánh ($22$), và kết thúc bằng RTL ($20$).
 
-Trình tự thực thi trên GCS: chỉ khi bộ dự báo trả về $\Nc=0$, hệ thống mới tạm dừng UAV còn liên lạc $\rightarrow$ kích hoạt RTL cho UAV sự cố nếu đường truyền còn hoạt động $\rightarrow$ nạp và khởi động các UAV nhận dải mới theo lịch tuyệt đối $t^{\mathrm{start}}_{j}=t_{0}+\tau_{j}$. Nếu vẫn còn xung đột sau bốn vòng, việc nạp nhiệm vụ bị hủy và sự cố được chuyển cho người vận hành xử lý. Khi số dải nhỏ hơn số UAV còn hoạt động, chỉ nhóm gần tâm của phần việc còn lại nhất nhận dải; các UAV khác không tham gia nhóm thực thi mới nên không tạo bao phủ trùng.
-
-% =========================================================
-\subsection{Độ phức tạp và tham số triển khai}
-
-Gọi $M$ là số UAV còn sống được gán dải, $K=|\Premain|$, $T$ số mẫu thời gian dự báo xung đột, và $L$ số waypoint serpentine trung bình mỗi dải. Quét sự cố tốn $O(N)$/chu kỳ. Khử trùng cục bộ dùng cửa sổ cố định 12 điểm nên tốn $O(K)$. Ước lượng khoảng cách làn so cặp trên mẫu $S=\min(K,120)$, do đó tốn $O(S^{2})$ với $S$ bị chặn. Chia theo kinh độ tốn $O(K\log K)$, sinh serpentine tốn $O(M\cdot L)$, và kiểm tra xung đột bằng cửa sổ thời gian tốn $O(M^{2}T)$. Với đội bay nhỏ ($N\le 6$) và vài trăm waypoint, vòng phục hồi phù hợp vận hành tương tác trên GCS.
-
-Các tham số mặc định dùng trong đánh giá là $\Tlost=3\,\mathrm{s}$, $\bmin=25\%$, $\dsaf=15\,\mathrm{m}$, $\Dh=5\,\mathrm{m}$, $\tauzero=2\,\mathrm{s}$, $v=2\,\mathrm{m/s}$, chu kỳ giám sát $1\,\mathrm{s}$ và tối đa $250$ waypoint/UAV. Khoảng làn $\delta$ được ước lượng trong miền $5$--$40\,\mathrm{m}$. Cửa sổ 12 điểm, ngưỡng khử trùng $1\,\mathrm{m}$, $\dsaf$ và biên đứng $\Dh-1$ là các tham số kinh nghiệm cho mật độ waypoint được khảo sát, không phải khoảng cách an toàn được chứng nhận hay tham số tối ưu.
+GCS chỉ nạp nhiệm vụ khi bộ dự báo trả về $\Nc=0$. Hệ thống trước hết tạm dừng các UAV còn liên lạc, sau đó kích hoạt RTL cho UAV gặp sự cố nếu đường truyền vẫn hoạt động, rồi nạp và khởi động các nhiệm vụ theo lịch $t^{\mathrm{start}}_{j}=t_{0}+\tau_{j}$. Nếu vẫn còn xung đột sau bốn vòng điều chỉnh, quá trình nạp bị hủy và quyền xử lý được chuyển cho người vận hành.
 
 % =========================================================
-\subsection{Thiết kế thực nghiệm}
+\subsection{Cài đặt, độ phức tạp và thiết kế thực nghiệm}
 
-Đánh giá được thiết kế quanh ba câu hỏi nghiên cứu:
+Gọi $M=|\Ua|$, $K=\sum_i|R_i|$ và $T$ là số mẫu thời gian dùng để dự báo xung đột. Mỗi chu kỳ phát hiện sự cố cần $O(N)$ phép tính; việc cắt hậu tố, chia tuyến và sao chép điểm đường bay cần $O(K)$. Phép gán mặc định duyệt $M!2^M$ phương án. Với bốn UAV và một UAV lỗi ($M=3$), số phương án là 48. Biến thể chọn số đoạn thích nghi phải xét $\sum_{C=1}^{M}P(M,C)2^C=78$ phương án. Kiểm tra xung đột giữa các cặp UAV có độ phức tạp $O(M^{2}T)$. Cách duyệt toàn bộ phù hợp với đội bay nhỏ; khi quy mô tăng, cần thay bằng phương pháp gán xấp xỉ hoặc một bộ tối ưu tổ hợp chuyên dụng.
+
+Các tham số mặc định dùng trong đánh giá là $\Tlost=3\,\mathrm{s}$, $\bmin=25\%$, $\dsaf=15\,\mathrm{m}$, $\Dh=5\,\mathrm{m}$, $\tauzero=2\,\mathrm{s}$, $v=2\,\mathrm{m/s}$, chu kỳ giám sát $1\,\mathrm{s}$ và tối đa 250 điểm đường bay cho mỗi UAV. Ngưỡng nối điểm $1\,\mathrm{m}$, $\dsaf$ và biên đứng $\Dh-1$ là các tham số kinh nghiệm cho bộ nhiệm vụ khảo sát, không phải khoảng cách an toàn được chứng nhận hay tham số tối ưu.
+
+% =========================================================
+Thực nghiệm được xây dựng để trả lời hai câu hỏi nghiên cứu:
 \begin{description}[leftmargin=1.4cm,style=nextline,itemsep=2pt]
-  \item[RQ1] Tái phân vùng có phục hồi được các waypoint nhiệm vụ còn lại sau khi một UAV rời nhiệm vụ không?
-  \item[RQ2] Chi phí của phục hồi thể hiện như thế nào qua thời gian hoàn thành và quãng đường cực đại?
-  \item[RQ3] Lớp CAA dựa trên phân tách không--thời gian có làm giảm số xung đột dự báo so với chỉ tái phân vùng hay không?
+  \item[RQ1] Với cùng ràng buộc về thứ tự và tính liên tục của đoạn, tiêu chí chiều dài cực đại ảnh hưởng như thế nào đến $\Tfin$, $I_L$ và số xung đột so với cách ưu tiên quãng nối?
+  \item[RQ2] Phân tách theo độ cao và thời điểm khởi động làm thay đổi số xung đột dự báo như thế nào so với phương án chỉ bàn giao tuyến dư?
 \end{description}
 
-\noindent\textbf{Thiết lập, kịch bản và đối chứng.}
+Phương pháp được cài đặt trong mô-đun \path{replan_coordinator} của GCS đa UAV, sử dụng Python/PyQt5, MAVSDK và tệp nhiệm vụ \texttt{.plan} của QGroundControl. Chương trình \path{simulate_replan_experiments.py} gọi trực tiếp mã lập kế hoạch của ứng dụng. Mỗi UAV được mô hình hóa như một điểm chuyển động với vận tốc không đổi trên đường gấp khúc.
 
-Phương pháp được cài đặt trong mô-đun \path{replan_coordinator} của GCS đa UAV. Phần mềm sử dụng Python/PyQt5, MAVSDK/qasync và tệp nhiệm vụ \texttt{.plan} của QGroundControl. Chương trình \path{simulate_replan_experiments.py} sử dụng trực tiếp cùng mã lập kế hoạch, còn chuyển động của UAV được mô tả bằng một điểm chạy dọc đường gấp khúc với vận tốc không đổi. Các trạng thái mất liên lạc, pin thấp và failsafe được tiêm trực tiếp vào mô phỏng để kích hoạt logic phát hiện, không được phát lại từ luồng dữ liệu MAVLink/MAVSDK thực. Vì vậy, thí nghiệm chỉ đánh giá logic điều phối và dữ liệu nhiệm vụ, không đánh giá bộ điều khiển bay. Bộ kiểm thử tự động bao gồm phát hiện sự cố, xác định phần việc còn lại, tính rời nhau của các dải, sinh đường serpentine, phân tách độ cao và thời gian, lệnh waypoint khi đang bay (MAV\_CMD~$16$, RTL~$20$), và sao lưu nhiệm vụ trước khi ghi đè.
-
-\noindent\textbf{Kịch bản và chiến lược so sánh.}
-
+Các trạng thái mất liên lạc, pin thấp và chế độ an toàn được đưa trực tiếp vào mô phỏng để kích hoạt bộ phát hiện; dữ liệu MAVLink/MAVSDK thực không được phát lại. Vì vậy, thí nghiệm đánh giá logic điều phối và quá trình xử lý nhiệm vụ, không đánh giá bộ điều khiển bay. Bộ kiểm thử tự động bao quát việc phát hiện sự cố, cắt phần tuyến chưa bay, giữ tuyến của UAV còn hoạt động, chia và gán đoạn liên tục, phân tách theo độ cao và thời gian, sử dụng MAV\_CMD~$16$ và RTL~$20$ khi tái khởi động, cũng như sao lưu nhiệm vụ trước khi ghi đè. Ba kịch bản được xét:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{S1:} mất liên lạc giữa nhiệm vụ ($\Treact$ gồm $\Tlost$).
-  \item \textbf{S2:} pin yếu hoặc chế độ failsafe khi nhiệm vụ chưa hoàn thành (cùng tiến độ với S1 và khác chủ yếu ở $\Treact$).
-  \item \textbf{S3:} sự cố xảy ra sớm hơn, làm tăng lượng waypoint cần phân bổ lại.
+  \item \textbf{S2:} pin yếu hoặc chế độ an toàn khi nhiệm vụ chưa hoàn thành (cùng tiến độ với S1 và khác chủ yếu ở $\Treact$).
+  \item \textbf{S3:} sự cố xảy ra sớm hơn, làm tăng số điểm đường bay cần phân bổ lại.
 \end{itemize}
-Các chiến lược:
+Các phương án so sánh gồm:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{B0:} không tái điều phối (UAV còn hoạt động giữ tuyến cũ; phần của UAV hỏng bị bỏ trống);
-  \item \textbf{Greedy:} chia cân bằng danh sách waypoint còn lại, gán nhóm cho UAV gần nhất và nối điểm theo lân cận gần nhất; đây là đối chứng phân bổ nhẹ có thể chạy trong cùng pipeline, không đại diện cho phương pháp tiên tiến như auction hoặc CBBA;
-  \item \textbf{B1:} tái phân vùng serpentine, không tách độ cao và thời gian;
-  \item \textbf{Đề xuất:} tái phân vùng serpentine kết hợp CAA ưu tiên độ cao và hỗ trợ lệch thời gian.
+  \item \textbf{Tham lam:} chia cân bằng danh sách điểm đường bay còn lại, gán mỗi nhóm cho UAV gần nhất và nối điểm theo quy tắc lân cận gần nhất; đây là đối chứng đơn giản chạy trong cùng quy trình, không đại diện cho các phương pháp đấu giá hoặc CBBA;
+  \item \textbf{B1:} bảo toàn tuyến dư, chia $R_f$ thành các đoạn liên tục và gán cho nhiều UAV hỗ trợ, không tách độ cao và thời gian;
+  \item \textbf{Đề xuất:} phương án B1 kết hợp CAA ưu tiên độ cao và hỗ trợ lệch thời gian.
 \end{itemize}
-S1 và S2 có cùng phần việc còn lại để tách ảnh hưởng của loại sự cố lên $\Treact$; do đó $\eta$, $\Lmax$ và hình học tuyến trùng nhau. Với phương pháp đề xuất, $\Tfin$ có thể chênh tối đa $2\,\mathrm{s}$ do thứ hạng pin làm thay đổi lịch khởi động. S3 không sử dụng B0 vì phép so sánh tập trung vào B1 và phương pháp đề xuất khi lượng việc còn lại lớn.
+S1 và S2 sử dụng cùng phần việc còn lại để tách ảnh hưởng của cơ chế phát hiện sự cố lên $\Treact$; vì vậy, hai kịch bản có cùng $\eta$, $\Lmax$ và hình học tuyến. Lịch khởi động theo thứ hạng pin làm $\Tfin$ của phương pháp đề xuất tăng trung bình $1{,}75\,\mathrm{s}$ và nhiều nhất $4\,\mathrm{s}$ so với B1. S3 không sử dụng B0 vì kịch bản này tập trung so sánh hai phương án có bàn giao khi khối lượng công việc còn lại lớn.
 
-Ma trận thực nghiệm chính xét B0, B1 và phương pháp đề xuất trên mọi tổ hợp giữa UAV~1--4 và bốn mức tiến độ xảy ra lỗi $20\%$, $40\%$, $60\%$ và $80\%$; ở S3, sự cố xảy ra sớm hơn 15 điểm phần trăm so với mức tương ứng. Ma trận này gồm 128 cấu hình kịch bản--chiến lược xác định. Mỗi cấu hình được chạy 30 lần để đo thời gian, tạo 3840 lượt. Greedy được đánh giá riêng như một đối chứng bổ sung trong thí nghiệm hình học và không được tính vào 128 cấu hình hoặc 3840 lượt của ma trận chính. S1 và S2 có cùng hình học tuyến và chỉ khác cơ chế phát hiện sự cố, nên 48 cấu hình tái phân vùng tương ứng với 32 hình học khác nhau. Các biến kiểm soát gồm vận tốc $2\,\mathrm{m/s}$, ngưỡng phân tách ngang $15\,\mathrm{m}$ và cùng một bộ nhiệm vụ đầu vào. Thời gian được đo trên Intel Core i5-1135G7, Windows build 26200 và Python 3.10.7; tệp CSV lưu trung bình, trung vị, độ lệch chuẩn, cực tiểu và cực đại. Vì hình học được xác định hoàn toàn bởi đầu vào, 30 lần lặp chỉ dùng để đo biến thiên thời gian tính toán. Thứ tự chạy các phương án được giữ cố định, do đó chênh lệch thời gian giữa B1 và phương pháp đề xuất không được dùng để kết luận phương án nào nhanh hơn.
+Ma trận chính kết hợp ba kịch bản, UAV gặp lỗi từ 1 đến 4 và bốn mức tiến độ $20\%$, $40\%$, $60\%$ và $80\%$. Trong S3, thời điểm sự cố được dịch sớm hơn 15 điểm phần trăm. B0, B1 và phương pháp đề xuất tạo thành 128 cấu hình xác định; mỗi cấu hình được chạy 30 lần để đo thời gian tính toán, tương ứng 3840 lượt. Phương pháp tham lam chỉ được dùng trong thí nghiệm hình học bổ sung, nên không thuộc ma trận này. Do S1 và S2 có cùng hình học và chỉ khác cơ chế phát hiện, 48 cấu hình bàn giao tương ứng với 32 trường hợp hình học khác nhau.
 
-\noindent\textbf{Chỉ tiêu đánh giá.}
+Các thí nghiệm sử dụng cùng bộ nhiệm vụ đầu vào, vận tốc $2\,\mathrm{m/s}$ và ngưỡng phân tách ngang $15\,\mathrm{m}$. Thời gian tính toán được đo trên máy Intel Core i5-1135G7, Windows bản dựng 26200 và Python 3.10.7. Tệp CSV lưu trung bình, trung vị, độ lệch chuẩn, giá trị nhỏ nhất và lớn nhất. Vì đầu vào quyết định hoàn toàn hình học tuyến, 30 lần lặp chỉ dùng để khảo sát biến thiên thời gian thực thi. Thứ tự chạy được giữ cố định; do đó, chênh lệch thời gian giữa B1 và phương pháp đề xuất không được dùng để kết luận về tốc độ tương đối.
 
-Các chỉ số được đo trên mô hình động học điểm (đường gấp khúc, tốc độ danh định $v$), không phải vùng phủ của cảm biến thật:
+Các chỉ số dưới đây được tính trên mô hình động học điểm với đường gấp khúc và vận tốc danh định $v$; chúng không mô tả trực tiếp vùng phủ của cảm biến:
 \begin{equation}
-  \eta=\frac{\bigl|\{p\in\Premain:\exists\,\mathrm{WP}\text{ trên }\cup\pi'\text{ cách }p\le r_{\mathrm{cov}}\}\bigr|}{|\Premain|},
+  \eta=\frac{\displaystyle\sum_{R\in\Premain}\sum_{p\in R}
+  \mathbf{1}\!\left[\min_{q\in\cup_j\pi'_j}d_{\mathrm{geo}}(p,q)\le r_{\mathrm{cov}}\right]}
+  {\displaystyle\sum_{R\in\Premain}|R|},
+  \label{eq:recovery-ratio}
 \end{equation}
-với $r_{\mathrm{cov}}\approx 0{,}6\cdot\delta$ và giá trị tối thiểu $8\,\mathrm{m}$. Đại lượng $\eta$ là \emph{tỷ lệ phục hồi waypoint còn lại}, không phải tỷ lệ diện tích được cảm biến quan sát. Hệ số $0{,}6$ và ngưỡng $8\,\mathrm{m}$ được lựa chọn theo mật độ waypoint của bộ nhiệm vụ khảo sát và được kiểm tra thêm bằng phân tích độ nhạy.
+Trong~\eqref{eq:recovery-ratio}, $r_{\mathrm{cov}}=8\,\mathrm{m}$ là bán kính đối sánh có xét sai số số học và dữ liệu vị trí. Đại lượng $\eta$ biểu thị tỷ lệ điểm đường bay còn lại xuất hiện trong các tuyến mới, không phải tỷ lệ diện tích được cảm biến quan sát. Do phương pháp đề xuất sao chép trực tiếp các hậu tố, $\eta$ còn được kiểm tra với các bán kính 4, 5 và $6\,\mathrm{m}$ để xác nhận tính toàn vẹn dữ liệu.
 \begin{equation}
-  \Tfin=\max_{j}\bigl(\tau_{j}+\mathrm{Length}(\pi'_{j})/v\bigr),\qquad
-  \Lmax=\max_{j}\mathrm{Length}(\pi'_{j}).
+  \widetilde\pi'_j=\bigl(p_j(t_f)\bigr)\oplus\pi'_j,\qquad
+  \Tfin=\max_{j}\bigl(\tau_{j}+\mathrm{Length}(\widetilde\pi'_{j})/v\bigr),
 \end{equation}
-$\Nc$ $=$ số cặp xung đột dự báo. CAA dùng CountConflicts lấy mẫu $1\,\mathrm{s}$; kết quả chính được kiểm tra lại bằng một phép tính riêng biệt sử dụng cực tiểu giải tích của khoảng cách tương đối trên từng cặp đoạn polyline có thời gian chồng nhau. Phép tính $\Nc$, $\Tfin$ và $\Lmax$ bao gồm đoạn chuyển tiếp từ vị trí hiện tại đến waypoint đầu của tuyến mới; riêng $\eta$ chỉ đánh giá waypoint đường quét. $\Tfin$ là thời gian hoàn thành ước lượng động học, chưa gồm tăng/giảm tốc, quay, leo/hạ độ cao và độ trễ nạp lệnh. $\Treact(\mathrm{S1})=\Tlost+t_{\mathrm{compute}}$; với S2/S3, $\Treact\approx t_{\mathrm{compute}}$.
+\begin{equation}
+  \Lmax=\max_{j}\mathrm{Length}(\widetilde\pi'_{j}),\qquad
+  I_L=\frac{L_{\max}}{L_{\mathrm{mean}}}.
+\end{equation}
+$\Nc$ $=$ số cặp xung đột dự báo. CAA dùng hàm \texttt{CountConflicts} với chu kỳ lấy mẫu $1\,\mathrm{s}$; kết quả chính được kiểm tra lại bằng một phép tính riêng, dựa trên cực tiểu giải tích của khoảng cách tương đối giữa từng cặp đoạn đường gấp khúc có thời gian chồng nhau. Chuỗi vận hành $\widetilde\pi'_j$ thêm vị trí hiện tại vào đầu kế hoạch, nên $\Nc$, $\Tfin$ và $\Lmax$ đều bao gồm đoạn chuyển tiếp đến điểm đầu tiên; riêng $\eta$ chỉ đánh giá các điểm trên đường quét. $\Tfin$ là thời gian hoàn thành ước lượng động học, chưa gồm tăng giảm tốc, quay, leo hạ độ cao và độ trễ nạp lệnh. $\Treact(\mathrm{S1})=\Tlost+t_{\mathrm{compute}}$; với S2/S3, $\Treact\approx t_{\mathrm{compute}}$.
 
 \section{Kết quả và bàn luận}
 
 \begin{table}[htbp]
 \centering
-\caption{Tổng hợp ma trận chính gồm 128 cấu hình B0/B1/Đề xuất, mỗi cấu hình lặp 30 lần để đo thời gian tính toán (3840 lượt); Greedy được đánh giá riêng ở Bảng~\ref{tab:geometry}. $N_{\mathrm{cfg}}$ là số cấu hình; $N_c>0$ được xác định bằng phép tính khoảng cách tiếp cận liên tục; $T_{\mathrm{fin}}$ là ước lượng thời gian hoàn thành động học. B0 không chạy cho S3; B1 là tái phân vùng không CAA.}
+\caption{Kết quả của ma trận thực nghiệm chính.}
 \label{tab:results}
 \small
 \input{../results/q1_compact_table.tex}
@@ -333,68 +331,80 @@ $\Nc$ $=$ số cặp xung đột dự báo. CAA dùng CountConflicts lấy mẫu
 
 B0 có ít cấu hình xung đột hơn B1, nhưng chỉ thực hiện phần việc của các UAV còn hoạt động và bỏ lại tuyến của UAV lỗi. Vì khối lượng nhiệm vụ khác nhau, số xung đột của hai phương án không thể được dùng riêng để xếp hạng mức độ an toàn.
 
-\subsection{Diễn giải theo câu hỏi nghiên cứu}
+\subsection{Phân tích kết quả}
 
-\noindent\textbf{RQ1 -- Khả năng phục hồi phần việc.}
-B0 phục hồi trung bình $75{,}00\%$ số waypoint còn lại, dao động từ $72{,}9\%$ đến $77{,}1\%$. Trên hình học gốc và với $r_{\mathrm{cov}}=8\,\mathrm{m}$, B1 và phương pháp đề xuất đều đạt $100\%$. Hai phương án sử dụng cùng tuyến quét ngang, nên mức tăng này là kết quả của bước tái phân vùng. Chỉ số $\eta$ đếm waypoint được khôi phục, không đại diện cho diện tích quan sát của cảm biến.
-
-\medskip
-\noindent\textbf{RQ2 -- Chi phí phục hồi.}
-Sau tái phân vùng, $\Lmax$ nằm trong $2202{,}3$--$2320{,}1\,\mathrm{m}$ và $\Tfin$ trong $1101{,}1$--$1160{,}1\,\mathrm{s}$ khi đã tính đoạn chuyển tiếp. Tỷ số mất cân bằng $I_L=L_{\max}/L_{\mathrm{mean}}$ đạt trung bình $1{,}018$, trong miền $1{,}008$--$1{,}030$. Không thể so trực tiếp với B0 vì phương án này không thực hiện phần việc của UAV lỗi.
+\noindent\textbf{Khả năng bảo toàn phần việc.}
+B0 chỉ giữ lại trung bình $75{,}00\%$ số điểm đường bay chưa hoàn thành, với giá trị thấp nhất $72{,}9\%$ và cao nhất $77{,}1\%$, vì tuyến của UAV lỗi không được bàn giao. B1 và phương pháp đề xuất đều đạt $100\%$ trên hình học gốc do sử dụng trực tiếp các hậu tố chưa bay. Kết quả không đổi khi bán kính đối sánh lần lượt là 4, 5, 6 và $8\,\mathrm{m}$. Chỉ số $\eta$ vì thế xác nhận các điểm đường bay không bị thất lạc trong quá trình xử lý dữ liệu; nó không phản ánh diện tích mà cảm biến thực sự quan sát được.
 
 \medskip
-\noindent\textbf{RQ3 -- Giá trị gia tăng của CAA.}
-Phép tính liên tục phát hiện xung đột trong 23/48 cấu hình B1, tương ứng 9/32 hình học tuyến khác nhau. Sau khi áp dụng CAA, không còn cấu hình nào vi phạm điều kiện phân tách đã đặt. Bộ dự báo lấy mẫu và phép tính liên tục cho cùng kết quả phân loại trên ma trận này. Phép tách thành phần ở Bảng~\ref{tab:ablation} cho thấy riêng phân tầng độ cao đã đạt $0/48$, trong khi chỉ thay đổi thời điểm khởi động còn $17/48$. Kết quả $0/48$ chủ yếu kiểm chứng rằng phần cài đặt phân tầng tuân thủ quy tắc phân tách đã quy định; lợi ích bổ sung của lệch thời gian chưa quan sát được trong các cấu hình khảo sát.
+\noindent\textbf{RQ1 -- Ảnh hưởng của tiêu chí gán.}
+Sau khi tuyến dư được chia và bàn giao, $\Lmax$ nằm trong khoảng $820{,}9$--$2184{,}8\,\mathrm{m}$; $\Tfin$, kể cả đoạn bay chuyển tiếp, nằm trong khoảng $410{,}4$--$1092{,}9\,\mathrm{s}$. Giá trị trung bình $I_L=1{,}038$ cho thấy chênh lệch chiều dài giữa các tuyến mới tương đối nhỏ trong ma trận khảo sát. Kết quả này chỉ phản ánh cân bằng theo chiều dài, không đồng nghĩa với tối ưu năng lượng hay thời gian hoàn thành toàn cục. B0 không thực hiện tuyến của UAV lỗi nên không có cùng khối lượng công việc để so sánh trực tiếp.
+
+Bảng~\ref{tab:assignment-ablation} so sánh ba cách gán dưới cùng các ràng buộc về tuyến riêng, đoạn liên tục và phép đảo cả đoạn, tổng cộng 144 cấu hình trên ba dạng hình học. So với cách ưu tiên quãng nối, tiêu chí chiều dài cực đại làm $\overline T_{\mathrm{fin}}$ giảm từ $981{,}9$ xuống $964{,}3\,\mathrm{s}$ ($1{,}8\%$), $\overline I_L$ giảm từ $1{,}081$ xuống $1{,}037$ ($4{,}1\%$), còn tỷ lệ cấu hình có xung đột giảm từ $97{,}2\%$ (140/144) xuống $91{,}7\%$ (132/144). Mức cải thiện còn nhỏ và mới được xác nhận so với đối chứng nội bộ. Biến thể chọn số đoạn thích nghi cho kết quả giống cách dùng số đoạn cố định vì trong mọi trường hợp nó đều chọn $C=M$; do đó B1 và phương pháp đề xuất sử dụng số đoạn cố định.
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh các tiêu chí gán tuyến dư.}
+\label{tab:assignment-ablation}
+\small
+\input{../results/assignment_ablation_compact.tex}
+\end{table}
+
+\medskip
+\noindent\textbf{RQ2 -- Ảnh hưởng của lớp giảm xung đột.}
+Phép tính khoảng cách liên tục phát hiện xung đột trong 44/48 cấu hình B1. Tiêu chí chiều dài chỉ giảm được hai cấu hình so với cách ưu tiên quãng nối; nhiều đoạn chuyển tiếp vẫn đi qua ranh giới các vùng trong những khoảng thời gian gần nhau. Điều này phù hợp với thiết kế của phép gán, bởi xung đột chưa được đưa vào hàm mục tiêu. Sau khi áp dụng CAA, cả 48 cấu hình đều thỏa điều kiện phân tách đã đặt. Bộ dự báo lấy mẫu và phép tính liên tục cho cùng kết quả phân loại trên ma trận này. Kết quả tách thành phần ở Bảng~\ref{tab:ablation} cho thấy phân tầng độ cao đưa số cấu hình vi phạm về 0, trong khi chỉ lệch thời gian vẫn còn 41/48. Như vậy, phân tầng độ cao quyết định kết quả của CAA trong thí nghiệm hiện tại; chưa thấy lợi ích bổ sung của lệch thời gian khi các tầng cao đã được sử dụng.
 
 Kết quả không xung đột khi phân tầng độ cao là hệ quả trực tiếp của việc khoảng cách tầng danh định $5\,\mathrm{m}$ lớn hơn ngưỡng phân tách đứng $4\,\mathrm{m}$. Do đó, kết quả này chỉ nên được hiểu là thỏa mãn quy tắc phân tách động học điểm đã quy định, không phải bằng chứng về chuyến bay không va chạm.
 
 \begin{table}[htbp]
 \centering
-\caption{Ảnh hưởng của từng thành phần CAA trên 48 cấu hình tái phân vùng; mỗi cấu hình chạy một lần vì các chỉ số hình học là xác định.}
+\caption{Ảnh hưởng của các thành phần giảm xung đột.}
 \label{tab:ablation}
 \small
 \input{../results/caa_ablation_compact.tex}
 \end{table}
 
-\noindent\textbf{Độ nhạy và hình học bổ sung.}
-Khi $r_{\mathrm{cov}}$ tăng từ 4 lên 5, 6 và $8\,\mathrm{m}$, tỷ lệ phục hồi trung bình của B1 lần lượt là $0\%$, $30{,}55\%$, $83{,}11\%$ và $100\%$. Phép tính sử dụng điều kiện khoảng cách không vượt quá $r_{\mathrm{cov}}$; mức tăng từ 4 lên $5\,\mathrm{m}$ phản ánh chỉ số waypoint rời rạc và khoảng lệch hình học giữa tuyến sinh mới với waypoint gốc, không phải khác biệt giữa toán tử $<$ và $\le$. Vì vậy, giá trị $100\%$ chỉ có ý nghĩa cùng với ngưỡng $8\,\mathrm{m}$ đã chọn. Bảng~\ref{tab:geometry} trình bày thêm trường hợp vùng quét xoay $35^\circ$ và vùng dài--hẹp. Ở vùng xoay, tỷ lệ của serpentine giảm còn $59{,}08\%$, cho thấy nhược điểm của cách chia cố định theo kinh độ. Greedy đạt tỷ lệ phục hồi cao hơn trên vùng xoay và tạo ít cấu hình có xung đột hơn serpentine trên hình học gốc và dài--hẹp; ngược lại, trên vùng xoay Greedy có $9/48$ cấu hình xung đột, so với $6/48$ của serpentine. Greedy không tích hợp bước xử lý xung đột sau phân bổ.
+\noindent\textbf{Ảnh hưởng của hình học nhiệm vụ.}
+Do các hậu tố được bảo toàn chính xác, B1 đạt $100\%$ ở cả bốn bán kính 4, 5, 6 và $8\,\mathrm{m}$; độ nhạy bán kính không còn là yếu tố phân biệt phương pháp. Bảng~\ref{tab:geometry} trình bày thêm trường hợp vùng quét xoay $35^\circ$ và vùng dài--hẹp. Cả B1 và phương pháp tham lam đều giữ $100\%$ điểm đường bay trên ba dạng hình học. Kết quả của phương pháp tham lam được tính sau khi sửa lỗi từng loại bỏ nhầm điểm gần vị trí bắt đầu; mỗi tuyến hiện là một hoán vị đầy đủ của đúng tập điểm đầu vào. $\overline T_{\mathrm{fin}}$ của phương pháp tham lam thấp hơn B1 nhưng $\overline I_L$ cao hơn trên cả ba dạng hình học. Trước CAA, phương pháp tham lam có 12/48, 9/48 và 11/48 cấu hình xung đột; B1 có 44/48 trên cả ba dạng. Hình học xoay là phép quay cứng của nhiệm vụ gốc nên bảo toàn chiều dài đoạn, thứ tự dọc tuyến và khoảng cách tương đối; vì vậy B1 có cùng $\overline T_{\mathrm{fin}}$ và $\overline I_L$ ở hai bố cục này, trong khi phương pháp tham lam thay đổi do quy tắc phá hòa theo tọa độ.
 
-Kết quả này cho thấy bộ tái phân vùng serpentine không phải là phương án tối ưu phổ quát. Khi vùng quét bị xoay, phép chia theo kinh độ không còn thẳng hàng với hướng chính của các làn quét, làm tăng khoảng lệch giữa waypoint gốc và tuyến sinh lại. Số xung đột trước CAA còn phụ thuộc đồng thời vào lượng waypoint được phục hồi, hình dạng tuyến và các đoạn chuyển tiếp; vì vậy không thể dùng riêng $N_c$ để xếp hạng chất lượng của bộ tái phân vùng. Đóng góp chính của phương pháp là pipeline phục hồi hoàn chỉnh cùng lớp CAA sau tái phân vùng, thay vì khẳng định serpentine luôn tốt hơn Greedy.
+Kết quả cho thấy các mục tiêu chưa được tối ưu đồng thời: cả hai phương pháp bảo toàn đầy đủ tập điểm đường bay, còn cách chia đoạn liên tục của B1 giữ thứ tự trong từng đoạn và cho tỷ số mất cân bằng thấp hơn phương pháp tham lam. Đổi lại, $\overline T_{\mathrm{fin}}$ của B1 cao gấp $3{,}34$, $3{,}24$ và $4{,}90$ lần phương pháp tham lam tương ứng trên hình học gốc, xoay và dài--hẹp. Đây không phải so sánh dưới cùng tập ràng buộc: phương pháp tham lam được phép hoán vị toàn cục, còn B1 bắt buộc giữ thứ tự cục bộ và tính liên tục của đoạn. Vì vậy, Bảng~\ref{tab:geometry} chỉ cho thấy sự đánh đổi giữa hai chính sách, không chứng minh B1 vượt trội. Trước khi áp dụng CAA, B1 cũng tạo nhiều xung đột dự báo hơn; ưu điểm quan sát được của nó giới hạn ở khả năng giữ thứ tự cục bộ và giảm $I_L$.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
-\caption{Kết quả trên ba cấu hình hình học và phương án đối chứng Greedy; $N_c$ được tính trước CAA.}
+\caption{Kết quả trên ba dạng hình học nhiệm vụ.}
 \label{tab:geometry}
 \small
 \input{../results/geometry_compact.tex}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/fig2_app_trajectory.png}
-  \caption{Ảnh chụp từ giao diện mô phỏng của GCS ở vận tốc danh định $2\,\mathrm{m/s}$ khi UAV~2 mất liên lạc tại $20\%$ tiến độ: (a) nhiệm vụ ban đầu; (b) phần tuyến chưa hoàn thành của UAV lỗi; (c) B1 còn hai cặp xung đột dự báo; và (d) phương pháp đề xuất đưa số xung đột về 0 bằng các tầng cao $12/17/22\,\mathrm{m}$ và thời gian chờ $0/2/4\,\mathrm{s}$.}
+  \caption{Quỹ đạo mô phỏng sau khi điều phối lại.}
   \label{fig:trajectory}
 \end{figure}
 
 \medskip
-\noindent\textbf{Độ trễ phản ứng và khả năng tái lập.}
-Đối với S1, $\Treact$ không thể nhỏ hơn $\Tlost=3\,\mathrm{s}$; ở S2 và S3, thành phần chính là $t_{\mathrm{compute}}$. Thời gian tính toán trung bình của phương pháp đề xuất nằm trong khoảng $0{,}015$--$0{,}024\,\mathrm{s}$ giữa các cấu hình và đạt $0{,}020\,\mathrm{s}$ trên toàn ma trận. Giá trị P95 lớn nhất là $0{,}032\,\mathrm{s}$, còn giá trị cực đại quan sát được là $0{,}066\,\mathrm{s}$. Các số liệu này chưa bao gồm thời gian truyền và thực thi lệnh trên phương tiện.
+\noindent\textbf{Thời gian phản ứng và khả năng tái lập.}
+Đối với S1, $\Treact$ không thể nhỏ hơn $\Tlost=3\,\mathrm{s}$; ở S2 và S3, thành phần chính là $t_{\mathrm{compute}}$. Trong lần chạy tái lập độc lập cuối cùng, thời gian tính toán trung bình của phương pháp đề xuất đạt $0{,}056\,\mathrm{s}$ trên 48 cấu hình (1440 lượt); trung bình theo cấu hình nằm trong khoảng $0{,}029$--$0{,}087\,\mathrm{s}$. Giá trị P95 trên toàn bộ 1440 lượt là $0{,}089\,\mathrm{s}$, còn giá trị cực đại quan sát được là $0{,}252\,\mathrm{s}$. Các số liệu này phụ thuộc tải máy, chỉ phản ánh phần tính toán Python và chưa bao gồm thời gian truyền hoặc thực thi lệnh trên phương tiện.
 
-Mỗi lần chạy lưu mã định danh nhiệm vụ, phiên bản mã nguồn, tham số, dữ liệu thô và thống kê tổng hợp. Toàn bộ 28 kiểm thử tự động đều đạt, bao gồm tính rời nhau của các dải mới, các cấu hình hình học biến đổi và trường hợp xung đột xảy ra giữa hai thời điểm lấy mẫu.
+Mỗi lần chạy lưu mã định danh nhiệm vụ, phiên bản mã nguồn, tham số, dữ liệu thô và thống kê tổng hợp. Toàn bộ 33 kiểm thử tự động đều đạt, bao gồm kiểm tra phương pháp tham lam không làm mất điểm đường bay gần vị trí bắt đầu, lựa chọn $C<M$, cắt hậu tố theo tiến độ, không tái quét phần đã hoàn thành, chia tuyến dư thành các đoạn liên tục, các cấu hình hình học biến đổi và trường hợp xung đột xảy ra giữa hai thời điểm lấy mẫu.
 
 % =========================================================
-\subsection{Đe dọa đối với tính hợp lệ}
+\subsection{Giới hạn của nghiên cứu}
 
-Việc xác định tiến độ bằng waypoint gần nhất có thể nhầm giữa hai làn serpentine kề nhau; một hướng khắc phục là giới hạn phép tìm kiếm quanh chỉ số nhiệm vụ hiện thời. Chỉ số $\eta$ không đo diện tích hay vệt quan sát của cảm biến và, như phân tích độ nhạy đã chỉ ra, phụ thuộc mạnh vào $r_{\mathrm{cov}}$. Kết quả trên vùng xoay cũng cho thấy hình chữ nhật bao chia theo kinh độ không phù hợp với mọi hướng quét, chưa kể vùng lõm hoặc có lỗ. Các ngưỡng khử trùng, đối sánh waypoint và phân tách được chọn theo bộ nhiệm vụ khảo sát; chúng không phải tham số tối ưu hay giới hạn an toàn được chứng nhận.
+Trong mô phỏng, chỉ số đoạn cho biết chính xác phần tuyến đã hoàn thành. Khi vận hành trực tiếp, nếu bộ điều khiển không cung cấp chỉ số nhiệm vụ hiện thời, cách ước lượng theo điểm gần nhất có thể chọn nhầm giữa hai làn kề nhau. Chỉ số $\eta$ chỉ đo mức bảo toàn điểm đường bay, không đo diện tích hoặc vệt quan sát của cảm biến. Phép gán cân bằng chiều dài tuyến nhưng chưa xét năng lượng, động học quay và leo hạ, hoặc nguy cơ xung đột. Ngoài ra, hai đoạn kề nhau dùng chung điểm biên để giữ đủ cạnh của tuyến gốc; nếu chúng được giao cho hai UAV khác nhau, điểm này có thể được đi qua hai lần. Các ngưỡng nối điểm, đối sánh và phân tách đều được chọn cho bộ nhiệm vụ đang xét, chưa phải tham số tối ưu hay giới hạn an toàn được chứng nhận.
 
-Mô hình động học điểm bỏ qua gió, quá trình tăng giảm tốc, giới hạn độ cao, vùng cấm bay, năng lượng cần cho tuyến mới và RTL, cũng như độ trễ phát hiện, truyền, xác nhận và thực thi lệnh. Bộ đánh giá giả định UAV đã thiết lập tầng cao được gán trước khi thực hiện tuyến ngang mới; xung đột trong quá trình leo/hạ giữa độ cao hiện tại và tầng được gán chưa được mô hình hóa tường minh. Phép tính khoảng cách tiếp cận liên tục độc lập với bộ dự báo về thủ tục tính, nhưng vẫn dùng cùng giả thiết động học điểm nên không phải xác nhận độc lập về mặt vật lý. Ngoài ra, kiến trúc tập trung phụ thuộc vào GCS và đường truyền.
+Mô hình động học điểm chưa mô tả gió, tăng giảm tốc, giới hạn độ cao, vùng cấm bay và độ trễ của quá trình truyền, xác nhận hay thực thi lệnh. Khả năng hoàn thành tuyến mới và quay về cũng chưa được kiểm tra theo điều kiện năng lượng $E_j^{\mathrm{available}}>E_j^{\mathrm{mission}}+E_j^{\mathrm{RTL}}$. Vì vậy, kịch bản pin yếu mới xác nhận việc phát hiện và bàn giao nhiệm vụ, chưa bảo đảm UAV nhận thêm việc có đủ năng lượng. Tương tự, bộ đánh giá giả định mỗi UAV đã đạt tầng cao mới trước khi bắt đầu bay ngang; chuyển động và xung đột trong giai đoạn leo hoặc hạ chưa được mô hình hóa. Phép tính khoảng cách tiếp cận liên tục khác bộ dự báo về thủ tục tính nhưng vẫn dùng cùng giả thiết động học điểm, nên không tạo ra một xác nhận độc lập về mặt vật lý. Kiến trúc tập trung còn phụ thuộc vào hoạt động của GCS và đường truyền.
 
-Ma trận định lượng mới xét bốn UAV và lỗi đơn; kiểm thử lỗi nối tiếp chỉ xác nhận luồng xử lý phần mềm, không cung cấp bằng chứng cho lỗi đồng thời hoặc hiệu năng khi quy mô đội bay tăng. Ba biến thể hình học đều sinh từ cùng một nhiệm vụ nền. B0 không có cùng khối lượng công việc với các phương án tái phân vùng, còn Greedy chỉ đối chứng bước phân bổ và không có lớp CAA; vì vậy các so sánh chỉ được diễn giải theo từng chức năng tương ứng. Các trạng thái sự cố được tiêm trực tiếp thay vì phát lại từ telemetry thực. Do đó, kết quả chưa chứng minh khả năng mở rộng hay vận hành đầu cuối và cần được kiểm tra tiếp bằng nhiều nhiệm vụ độc lập, PX4 SITL và bay thực nghiệm.
+Ma trận định lượng chỉ gồm bốn UAV và một lỗi tại mỗi thời điểm. Kiểm thử lỗi nối tiếp xác nhận luồng xử lý của phần mềm, nhưng chưa cho biết hệ thống sẽ hoạt động thế nào khi nhiều lỗi xảy ra đồng thời hoặc khi quy mô đội bay tăng. Ba dạng hình học khảo sát cũng đều được tạo từ cùng một nhiệm vụ nền. Hiện tại, chương trình chỉ lấy tọa độ và tạo lại điểm đường bay bằng MAV\_CMD~$16$. Khi một đoạn bị đảo chiều, hình học được giữ lại nhưng các lệnh liên quan đến máy ảnh, hướng quay, vùng quan tâm hoặc thay đổi tốc độ có thể không còn đúng ngữ nghĩa ban đầu. B0 thực hiện ít công việc hơn các phương án tái điều phối, còn phương pháp tham lam chỉ được dùng để đối chứng bước phân bổ và không có lớp CAA; các kết quả vì thế phải được đọc theo đúng chức năng của từng phương án. Cuối cùng, trạng thái sự cố được đưa trực tiếp vào mô phỏng thay vì phát lại từ dữ liệu bay thực. Việc đánh giá nhiều nhiệm vụ độc lập, thử nghiệm PX4 SITL và bay thực tế vẫn cần thiết trước khi kết luận về khả năng mở rộng hoặc vận hành đầu cuối.
 
 % =========================================================
 \section{Kết luận}
 
-Nghiên cứu đã xây dựng quy trình điều phối lại tại GCS, gồm phát hiện sự cố, xác định phần việc chưa hoàn thành, tái phân vùng serpentine, phân tầng độ cao với lệch thời gian dự phòng và sinh nhiệm vụ mới. Với hình học gốc và $r_{\mathrm{cov}}=8\,\mathrm{m}$, toàn bộ waypoint còn lại được khôi phục; số cấu hình có xung đột giảm từ 23/48 xuống 0/48 theo điều kiện phân tách đã chọn. Phân tích thành phần cho thấy kết quả này chủ yếu do phân tầng độ cao, còn lệch thời gian chưa đem lại cải thiện bổ sung trong ma trận khảo sát. So sánh với Greedy và thí nghiệm trên vùng xoay cho thấy bộ tái phân vùng serpentine vẫn phụ thuộc vào hướng phân vùng; đóng góp chính nằm ở pipeline phục hồi và xử lý xung đột sau phân bổ. Công việc tiếp theo sẽ tập trung vào phân vùng theo hướng chính hoặc biên đa giác, gán nhiệm vụ theo năng lượng còn lại, và đánh giá trên PX4 SITL trước khi bay thực nghiệm.
+Nghiên cứu đã xây dựng và kiểm tra một quy trình điều phối lại nhiệm vụ tại GCS khi một UAV rời đội hình. Phần tuyến chưa hoàn thành của UAV lỗi được chia thành các đoạn liên tục để nhiều UAV tiếp nhận, trong khi tuyến đang thực hiện của chúng vẫn được giữ nguyên. Tiêu chí chiều dài cực đại giúp phân bố quãng đường đồng đều hơn cách ưu tiên quãng nối, dù mức cải thiện còn nhỏ; việc thay đổi thích nghi số đoạn không đem lại lợi ích trong các cấu hình đã thử.
+
+B1 và phương pháp tham lam đều giữ đủ tập điểm đường bay, nhưng thể hiện hai lựa chọn khác nhau. B1 bảo toàn thứ tự cục bộ và đạt tỷ số mất cân bằng trung bình 1,038; đổi lại, thời gian hoàn thành ước lượng cao gấp 3,24--4,90 lần phương pháp tham lam trên ba dạng hình học không cùng tập ràng buộc. Trước khi áp dụng CAA, B1 có xung đột dự báo trong 44/48 cấu hình. Phân tầng với khoảng cách $5\,\mathrm{m}$ đưa số vi phạm về 0 vì ngưỡng phân tách đứng được đặt ở $4\,\mathrm{m}$, trong khi lệch thời gian riêng lẻ vẫn còn 41/48 cấu hình. Kết quả này xác nhận sự tuân thủ quy tắc của mô hình, chưa chứng minh an toàn bay hoặc tính khả thi về năng lượng. Hướng phát triển tiếp theo là đưa xung đột, năng lượng và quá trình chuyển tầng vào phép gán; bảo toàn đầy đủ các lệnh nhiệm vụ; và đánh giá hệ thống bằng nhiều nhiệm vụ độc lập, PX4 SITL cùng thử nghiệm bay.
 
 \ifanonymous\else
 \section*{Lời cảm ơn}
@@ -403,7 +413,7 @@ Nghiên cứu liên quan định hướng ứng dụng trong đề tài cấp c�
 
 % =========================================================
 \bibliographystyle{ieeetr}
-\footnotesize
+\scriptsize
 \renewcommand{\refname}{Tài liệu tham khảo}
 \bibliography{references}
 

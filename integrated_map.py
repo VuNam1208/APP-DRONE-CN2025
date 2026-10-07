@@ -83,6 +83,11 @@ class MapBridge(QObject):
             position=[float(position[0]), float(position[1])],
         )
 
+    def setSimulationTrails(self, trails):
+        self._send_simulation_command(
+            "set_trails", routes=self._normalize_routes(trails)
+        )
+
     def markFailedDrone(self, drone_id, position):
         self._send_simulation_command(
             "mark_failed",
@@ -842,6 +847,33 @@ def integrated_map_html():
       simulationTrails[key].addLatLng(point);
     }
 
+    function setSimulationTrails(routes) {
+      if (!simulationTrailEnabled) {
+        return;
+      }
+      Object.keys(routes || {}).forEach(function(droneId) {
+        var points = (routes[droneId] || []).map(function(point) {
+          return [parseFloat(point[0]), parseFloat(point[1])];
+        }).filter(function(point) {
+          return Number.isFinite(point[0]) && Number.isFinite(point[1]);
+        });
+        if (!points.length) {
+          return;
+        }
+        if (!simulationTrails[droneId]) {
+          simulationTrails[droneId] = L.polyline([], {
+            renderer: canvasRenderer,
+            color: simulationColor(droneId),
+            weight: 5,
+            opacity: 0.92,
+            interactive: false,
+            smoothFactor: 1.0
+          }).addTo(simulationLayers.flown);
+        }
+        simulationTrails[droneId].setLatLngs(points);
+      });
+    }
+
     function setSimulationRoutes(routes, phase) {
       var layer = simulationLayers[phase];
       if (!layer) {
@@ -875,7 +907,8 @@ def integrated_map_html():
           weight: phase === 'initial' ? 2 : 4,
           opacity: phase === 'initial' ? 0.36 : 0.92,
           interactive: false,
-          smoothFactor: 1.0
+          smoothFactor: phase === 'replan' ? 0 : 1.0,
+          noClip: phase === 'replan'
         };
         if (phase === 'initial') {
           style.dashArray = '5 7';
@@ -889,6 +922,15 @@ def integrated_map_html():
         // Keep the planned coverage line inside its assigned map region.
         // Home transit is still visible through the live flown trail.
         var displayedRoute = phase === 'initial' ? simulationCoverageRoute(route) : route;
+        if (phase === 'replan') {
+          for (var segmentIndex = 0; segmentIndex < displayedRoute.length - 1; segmentIndex += 1) {
+            L.polyline(
+              [displayedRoute[segmentIndex], displayedRoute[segmentIndex + 1]],
+              style
+            ).addTo(layer).bringToFront();
+          }
+          return;
+        }
         var line = L.polyline(displayedRoute, style).addTo(layer);
         if (phase === 'flown') {
           simulationTrails[String(droneId)] = line;
@@ -1149,6 +1191,8 @@ def integrated_map_html():
           setSimulationPositions(command.positions);
         } else if (command.action === 'append_trail') {
           appendSimulationTrail(command.drone_id, command.position);
+        } else if (command.action === 'set_trails') {
+          setSimulationTrails(command.routes);
         } else if (command.action === 'mark_failed') {
           markFailedDrone(command.drone_id, command.position);
         } else if (command.action === 'clear') {

@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from replan_coordinator import (
+    assign_contiguous_residual_segments,
     build_qgc_plan,
     build_serpentine_remap_routes,
     count_conflicts,
@@ -10,6 +11,8 @@ from replan_coordinator import (
     haversine_m,
     prepend_route_starts,
     serpentine_in_bbox,
+    split_route_contiguous,
+    order_path_from_start,
 )
 from simulation_controller import (
     DroneStatus,
@@ -20,6 +23,63 @@ from simulate_replan_experiments import ScenarioSetup, load_plans, run_strategy
 
 
 class SimulationControllerTests(unittest.TestCase):
+    def test_nearest_neighbor_order_preserves_point_at_start(self):
+        start = (21.0, 105.0)
+        points = [start, (21.0, 105.0001), (21.0, 105.0002)]
+
+        ordered = order_path_from_start(start, points)
+
+        self.assertEqual(len(ordered), len(points))
+        self.assertCountEqual(ordered, points)
+
+    def test_failed_route_is_split_into_contiguous_helper_segments(self):
+        failed = [(21.0, 105.0 + index * 0.0001) for index in range(10)]
+        chunks = split_route_contiguous(failed, 3)
+
+        self.assertEqual(len(chunks), 3)
+        self.assertEqual(chunks[0][-1], chunks[1][0])
+        self.assertEqual(chunks[1][-1], chunks[2][0])
+        for chunk in chunks:
+            start = failed.index(chunk[0])
+            end = failed.index(chunk[-1])
+            self.assertEqual(chunk, failed[start : end + 1])
+
+        alive = (2, 3, 4)
+        own = {
+            2: [(20.9998, 105.0000)],
+            3: [(20.9998, 105.00045)],
+            4: [(20.9998, 105.0009)],
+        }
+        shares = assign_contiguous_residual_segments(failed, alive, own, {
+            drone_id: route[-1] for drone_id, route in own.items()
+        })
+        assigned = [route for route in shares.values() if route]
+        self.assertEqual(len(assigned), 3)
+        for route in assigned:
+            self.assertTrue(route in chunks or list(reversed(route)) in chunks)
+
+    def test_contiguous_assignment_can_use_fewer_than_all_helpers(self):
+        failed = [(21.0, 105.0 + index * 0.0001) for index in range(4)]
+        long_route = [(21.0 + index * 0.0001, 105.01) for index in range(20)]
+        own = {2: [], 3: long_route, 4: long_route}
+        positions = {
+            2: failed[0],
+            3: long_route[0],
+            4: (long_route[0][0], long_route[0][1] + 0.001),
+        }
+
+        shares = assign_contiguous_residual_segments(
+            failed, (2, 3, 4), own, positions, adaptive_segment_count=True
+        )
+
+        self.assertEqual(sum(bool(route) for route in shares.values()), 1)
+        self.assertTrue(shares[2])
+
+        fixed_shares = assign_contiguous_residual_segments(
+            failed, (2, 3, 4), own, positions, adaptive_segment_count=False
+        )
+        self.assertEqual(sum(bool(route) for route in fixed_shares.values()), 3)
+
     def test_continuous_checker_detects_between_sample_conflict(self):
         # The crossing occurs between coarse one-second samples.
         routes = {
