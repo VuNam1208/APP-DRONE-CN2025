@@ -1,0 +1,38 @@
+{
+  "python": "3.10.7",
+  "shapely": "2.0.7",
+  "source_hashes": {
+    "evaluate_revision5.py": "60a0a87a3a0940bd41d1928af323d59875cac13a505c4714f1d99860b360bee6",
+    "evaluate_revision2.py": "40ce716062882bfb986a396a8c2400da0c51629aa5940657d037b71fe240d1a6",
+    "replan_coordinator.py": "20ff16bfe41b1bbd751e280578c396d9e35ad142656624ef40c39b8fcf91bc49"
+  },
+  "input_hashes": {
+    "independent_missions.json": "c242d9b3a00c3ce8e3f95b91c1159ab6ea5a2914ab63ee321a9369d6e0adcbba",
+    "independent_raw.csv": "bb5136699d6a69081a9d7d7639cb87086e5283ad763ba36e7dba4538f265c912"
+  },
+  "spatial_cases": 120,
+  "caa_cases": 48,
+  "caa_evaluations": 5760,
+  "positive_gain_cases": 72,
+  "zero_gain_cases": 48,
+  "negative_gain_cases": 0,
+  "mission_gain_mean_pct": 1.9294310593522193,
+  "mission_gain_median_pct": 1.3256052524151212,
+  "mission_gain_min_pct": 0.32484766005803634,
+  "mission_gain_max_pct": 4.821048993638333,
+  "max_gain_case": {
+    "seed": 20261024,
+    "failed": 1,
+    "gain_pct": 11.045718821851057,
+    "own_load_cv": 0.3486793471780998,
+    "failed_to_mean_own": 0.8922100954197989,
+    "b1_time_s": 656.0321571124707,
+    "connector_time_s": 737.493629787906
+  },
+  "mission_gain_cv_correlation": 0.0064955477774669415,
+  "mission_gain_failedload_correlation": -0.015174195599134334,
+  "climb_speed_mps": 1.0,
+  "cruise_speed_mps": 2.0,
+  "geometry_note": "Local planar coordinates; 64-segment-per-quadrant polygonal buffer; no sensor model.",
+  "caa_note": "Unchanged nominal CAA, threshold max(1, spacing-1); independent evaluation threshold 4/6m. Climb at t=0, delay after reaching layer, final hold; constant alternating altitude biases, not stochastic tracking errors."
+}

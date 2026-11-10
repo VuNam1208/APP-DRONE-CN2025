@@ -1,0 +1,5 @@
+spacing_m,clearance_m,tau0_s,initial,bias_m,cases,accepted,rejected,acceptance_pct
+5.0,4.0,2.0,equal,0.0,48,48,0,100.0
+5.0,4.0,2.0,equal,1.0,48,25,23,52.083333333333336
+5.0,4.0,2.0,mixed,0.0,48,48,0,100.0
+5.0,4.0,2.0,mixed,1.0,48,26,22,54.166666666666664

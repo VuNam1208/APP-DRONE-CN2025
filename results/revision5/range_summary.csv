@@ -1,0 +1,5 @@
+budget_m,adaptive,cases,baseline_feasible,constrained_feasible,rescued
+2000,0,120,22,23,1
+2000,1,120,22,27,5
+4000,0,120,109,109,0
+4000,1,120,109,115,6

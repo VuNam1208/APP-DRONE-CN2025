@@ -439,6 +439,10 @@ def setup_integrated_map(window):
         return
 
     settings = window.ui.embedded_map_view.settings()
+    profile = window.ui.embedded_map_view.page().profile()
+    user_agent = profile.httpUserAgent()
+    if "APP-DRONE-CN2025" not in user_agent:
+        profile.setHttpUserAgent(user_agent + " APP-DRONE-CN2025/1.0")
     for attribute, enabled in (
         (QWebEngineSettings.ScrollAnimatorEnabled, False),
         (QWebEngineSettings.WebGLEnabled, False),
@@ -756,16 +760,83 @@ def integrated_map_html():
       wheelDebounceTime: 180,
       wheelPxPerZoomLevel: 150
     }).setView([21.0609062, 105.791999817], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      maxNativeZoom: 19,
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-      updateInterval: 500,
-      keepBuffer: 0,
-      detectRetina: false,
-      attribution: 'Map data'
-    }).addTo(map);
+    var basemapSources = [
+      {
+        name: 'OpenStreetMap',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      },
+      {
+        name: 'OpenStreetMap France / HOT',
+        url: 'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+          'style by <a href="https://www.hotosm.org/">HOT</a>, ' +
+          'tiles by <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>'
+      }
+    ];
+    var activeBasemap = null;
+    var basemapState = {source: '', loaded: 0, errors: 0};
+    var basemapNotice = L.control({position: 'topright'});
+    basemapNotice.onAdd = function() {
+      this.element = L.DomUtil.create('div');
+      this.element.style.cssText = 'display:none;max-width:280px;padding:8px 10px;' +
+        'background:#fff3cd;color:#664d03;border:1px solid #e5c365;' +
+        'border-radius:4px;font:13px/1.4 Segoe UI,Arial,sans-serif';
+      this.element.setAttribute('role', 'status');
+      L.DomEvent.disableClickPropagation(this.element);
+      return this.element;
+    };
+    basemapNotice.addTo(map);
+
+    function setBasemapNotice(message) {
+      basemapNotice.element.textContent = message;
+      basemapNotice.element.style.display = message ? 'block' : 'none';
+    }
+
+    function loadBasemap(sourceIndex) {
+      if (activeBasemap) map.removeLayer(activeBasemap);
+      var source = basemapSources[sourceIndex];
+      var layer = L.tileLayer(source.url, {
+        maxZoom: 19,
+        maxNativeZoom: 19,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        updateInterval: 500,
+        keepBuffer: 0,
+        detectRetina: false,
+        attribution: source.attribution
+      });
+      activeBasemap = layer;
+      basemapState = {source: source.name, loaded: 0, errors: 0};
+      var loadedThisView = 0;
+      var fallbackPending = false;
+      layer.on('loading', function() { loadedThisView = 0; });
+      layer.on('tileload', function() {
+        if (activeBasemap !== layer) return;
+        loadedThisView += 1;
+        basemapState.loaded += 1;
+        setBasemapNotice('');
+      });
+      layer.on('tileerror', function(event) {
+        if (activeBasemap !== layer) return;
+        basemapState.errors += 1;
+        console.warn('Basemap tile failed: ' + source.name + ' ' + event.tile.src);
+        setBasemapNotice('Không tải được ảnh nền bản đồ. Kiểm tra kết nối mạng hoặc DNS.');
+        // Switch once per provider, allowing concurrent tile requests to finish first.
+        if (!fallbackPending && sourceIndex + 1 < basemapSources.length) {
+          fallbackPending = true;
+          window.setTimeout(function() {
+            fallbackPending = false;
+            if (activeBasemap === layer && loadedThisView === 0) {
+              setBasemapNotice('Đang tải nguồn bản đồ dự phòng...');
+              loadBasemap(sourceIndex + 1);
+            }
+          }, 700);
+        }
+      });
+      layer.addTo(map);
+    }
+    loadBasemap(0);
 
     var rescuePoints = [];
     var rescueMarkers = [];

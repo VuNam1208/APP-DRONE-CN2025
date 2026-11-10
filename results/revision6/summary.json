@@ -1,0 +1,18 @@
+{
+  "missions": 30,
+  "failure_cases": 120,
+  "mean_gain_pct": 1.9294310593522193,
+  "median_mission_gain_pct": 1.3256052524151212,
+  "bootstrap_95_low_pct": 1.47208859765095,
+  "bootstrap_95_high_pct": 2.421751580315239,
+  "leave_one_out_min_pct": 1.8297200961009739,
+  "leave_one_out_max_pct": 1.9847615213968461,
+  "bootstrap_repeats": 20000,
+  "bootstrap_seed": 20261008,
+  "method": "Mission-cluster percentile bootstrap; inclusive linear quantiles at 2.5% and 97.5%.",
+  "estimand": "Mean of four paired relative completion-time gains per independently generated mission.",
+  "scope": "Conditional on the adjacent-survey mission generator and failure-progress sampling; no sensor or real-flight inference.",
+  "python": "3.10.7",
+  "input_sha256": "4d0099927d33c686bfbeb17c1d1344f1b6a721b335747ba398afc8a5feb35d5d",
+  "source_sha256": "6fbc473a307f52f6f26ea317399c76dad121e8efacea18fb47d198df681c56e6"
+}

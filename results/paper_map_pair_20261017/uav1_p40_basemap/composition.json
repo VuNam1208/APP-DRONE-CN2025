@@ -1,0 +1,14 @@
+{
+  "sources_sha256": {
+    "pair_initial.png": "06449c4aea88911ccf426ef92bd316aa2a95567d4f808fcd7eb2091cb7e11a2a",
+    "pair_replan.png": "e655dd8109d9d3c967d1753527daf60528fbb1e18e266556aa055f6265a6d3dd"
+  },
+  "identical_crop_px": [
+    815,
+    115,
+    1225,
+    600
+  ],
+  "output": "Bai_bao\\figures\\fig2_app_map_pair.png",
+  "processing": "Identical crop, side-by-side paste and panel labels; map attribution is in the paper footnote. No map retouching."
+}

@@ -1,0 +1,81 @@
+{
+  "mode": "Offline SIM",
+  "strategy": "Proposed",
+  "failed_uav": 1,
+  "failure_type": "lost_link",
+  "failure_progress_setting": 0.4,
+  "note": "App progress uses coverage distance, not the paper matrix waypoint index.",
+  "altitudes_m": {
+    "2": 12.0,
+    "3": 17.0,
+    "4": 22.0
+  },
+  "delays_s": {
+    "2": 0.0,
+    "3": 2.0,
+    "4": 4.0
+  },
+  "snapshot": {
+    "status": "RUNNING",
+    "simulation_time_s": 377.0960400000331,
+    "failure_triggered": true,
+    "drones": {
+      "1": {
+        "position": [
+          21.065624962620923,
+          105.79417743304907
+        ],
+        "altitude_m": 12.0,
+        "status": "FAILED",
+        "progress": 0.4009343583667095,
+        "distance_flown_m": 754.1920800000662,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "FAILED"
+      },
+      "2": {
+        "position": [
+          21.064970712152085,
+          105.79440849191066
+        ],
+        "altitude_m": 12.0,
+        "status": "FLYING",
+        "progress": 0.35776380702512167,
+        "distance_flown_m": 754.1920800000662,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "3": {
+        "position": [
+          21.06447900171307,
+          105.79441995917966
+        ],
+        "altitude_m": 17.0,
+        "status": "DELAYED",
+        "progress": 0.3584800609160302,
+        "distance_flown_m": 754.1920800000662,
+        "delay_remaining_s": 2.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "4": {
+        "position": [
+          21.063776446706196,
+          105.79426823251897
+        ],
+        "altitude_m": 22.0,
+        "status": "DELAYED",
+        "progress": 0.4075652714025316,
+        "distance_flown_m": 754.1920800000662,
+        "delay_remaining_s": 4.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      }
+    }
+  },
+  "sources": [
+    "pair_initial.png",
+    "pair_replan.png"
+  ]
+}

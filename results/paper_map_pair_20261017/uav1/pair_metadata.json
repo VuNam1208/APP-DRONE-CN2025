@@ -1,0 +1,81 @@
+{
+  "mode": "Offline SIM",
+  "strategy": "Proposed",
+  "failed_uav": 1,
+  "failure_type": "lost_link",
+  "failure_progress_setting": 0.2,
+  "note": "App progress uses coverage distance, not the paper matrix waypoint index.",
+  "altitudes_m": {
+    "2": 12.0,
+    "3": 17.0,
+    "4": 22.0
+  },
+  "delays_s": {
+    "2": 0.0,
+    "3": 2.0,
+    "4": 4.0
+  },
+  "snapshot": {
+    "status": "RUNNING",
+    "simulation_time_s": 234.64715399983106,
+    "failure_triggered": true,
+    "drones": {
+      "1": {
+        "position": [
+          21.065535131503424,
+          105.79503683765067
+        ],
+        "altitude_m": 12.0,
+        "status": "FAILED",
+        "progress": 0.20062101100480384,
+        "distance_flown_m": 469.2943079996621,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "FAILED"
+      },
+      "2": {
+        "position": [
+          21.064880881034586,
+          105.79480576688955
+        ],
+        "altitude_m": 12.0,
+        "status": "FLYING",
+        "progress": 0.18623964087959882,
+        "distance_flown_m": 469.2943079996621,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "3": {
+        "position": [
+          21.06456883283057,
+          105.79479429225971
+        ],
+        "altitude_m": 17.0,
+        "status": "DELAYED",
+        "progress": 0.18695667430674975,
+        "distance_flown_m": 469.2943079996621,
+        "delay_remaining_s": 2.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "4": {
+        "position": [
+          21.063866277823696,
+          105.79494600609833
+        ],
+        "altitude_m": 22.0,
+        "status": "DELAYED",
+        "progress": 0.20725455301955176,
+        "distance_flown_m": 469.2943079996621,
+        "delay_remaining_s": 4.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      }
+    }
+  },
+  "sources": [
+    "pair_initial.png",
+    "pair_replan.png"
+  ]
+}

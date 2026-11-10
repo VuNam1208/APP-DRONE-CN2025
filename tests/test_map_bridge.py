@@ -78,6 +78,18 @@ class MapBridgeSimulationTests(unittest.TestCase):
         self.assertIn("L.polygon(boundaryBounds", html)
         self.assertIn("KHU VỰC QUÉT", html)
 
+    def test_basemap_has_fallback_and_visible_failure_notice(self):
+        html = integrated_map_html()
+        self.assertIn("https://tile.openstreetmap.org/{z}/{x}/{y}.png", html)
+        self.assertNotIn("https://{s}.tile.openstreetmap.org/", html)
+        self.assertIn("https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", html)
+        self.assertIn("layer.on('tileerror'", html)
+        self.assertIn("activeBasemap === layer && loadedThisView === 0", html)
+        self.assertIn("sourceIndex + 1 < basemapSources.length", html)
+        self.assertIn("Không tải được ảnh nền bản đồ", html)
+        self.assertIn("https://www.openstreetmap.org/copyright", html)
+        self.assertIn("https://www.openstreetmap.fr/", html)
+
 
 if __name__ == "__main__":
     unittest.main()

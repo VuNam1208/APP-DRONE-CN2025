@@ -1,0 +1,17 @@
+{
+  "seed": 20261008,
+  "missions": 30,
+  "python": "3.10.7",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "speed_mps": 2,
+  "caa": false,
+  "source_hashes": {
+    "evaluate_revision2.py": "40ce716062882bfb986a396a8c2400da0c51629aa5940657d037b71fe240d1a6",
+    "replan_coordinator.py": "618834603da36ac6675bf683d84852d0e292d041313ba7ea1533928ac18feee5"
+  },
+  "mean_paired_time_ratio": 1.7760191910066487,
+  "mission_connector_gain_mean_pct": 1.9294310593522193,
+  "mission_connector_gain_min_pct": 0.32484766005803634,
+  "mission_connector_gain_max_pct": 4.821048993638333,
+  "limitations": "Synthetic geometry; exact edges; no sensor, energy calibration, CAA, or SITL."
+}

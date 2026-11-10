@@ -1,0 +1,17 @@
+{
+  "python": "3.10.7",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "repeats": 5,
+  "order_seed": 20261008,
+  "warmup_calls": 5,
+  "timing_scope": "Assignment only, includes feasibility checks and unsuccessful searches; excludes preparation, CSV, CAA and transmission.",
+  "acceptance_scope": "Offline 3D check only, no schedule repair and no joint energy/range or full-mission-completion claim.",
+  "sha256": {
+    "C:\\Users\\HP\\OneDrive - TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC C\u00d4NG NGH\u1ec6\\D\u1ea1y_UET\\APP-DRONE-CN2025\\evaluate_revision8.py": "fefdd2ba772e693c4526f7dae2c8284d269dbe8f78713e09fa680d1017b1aed8",
+    "replan_coordinator.py": "20ff16bfe41b1bbd751e280578c396d9e35ad142656624ef40c39b8fcf91bc49",
+    "results\\revision5\\caa_raw.csv": "3082a20bfe96a21226b4706a12a05ba980eb5f1e7f16c46472b9b07cc0fdbd82",
+    "results\\revision5\\range_raw.csv": "1fe062302c3261a9ad1100fb03795b66be655e2b31e049a2ad1b32b841d183fd",
+    "results\\revision2\\independent_missions.json": "c242d9b3a00c3ce8e3f95b91c1159ab6ea5a2914ab63ee321a9369d6e0adcbba",
+    "results\\revision2\\independent_raw.csv": "bb5136699d6a69081a9d7d7639cb87086e5283ad763ba36e7dba4538f265c912"
+  }
+}

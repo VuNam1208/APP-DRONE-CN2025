@@ -195,11 +195,24 @@ def assign_contiguous_residual_segments(
     positions: Dict[int, Point],
     adaptive_segment_count: bool = False,
     assignment_objective: str = "makespan",
-) -> Dict[int, List[Point]]:
+    range_budgets_m: Optional[Dict[int, float]] = None,
+    return_homes: Optional[Dict[int, Point]] = None,
+    reserve_fraction: float = 0.2,
+) -> Optional[Dict[int, List[Point]]]:
     """Assign an adaptive number of contiguous segments by projected makespan."""
     helpers = [drone_id for drone_id in alive if drone_id in positions]
     if not helpers or not failed_route:
         return {drone_id: [] for drone_id in alive}
+
+    if range_budgets_m is not None:
+        if not math.isfinite(reserve_fraction) or not 0 <= reserve_fraction < 1:
+            raise ValueError("reserve_fraction must be finite and in [0, 1)")
+        for drone_id in alive:
+            if (drone_id not in positions or drone_id not in range_budgets_m or not return_homes
+                    or drone_id not in return_homes
+                    or not math.isfinite(range_budgets_m[drone_id])
+                    or range_budgets_m[drone_id] < 0):
+                raise ValueError("Every survivor requires a finite range budget and return home")
 
     own_lengths = {
         drone_id: path_length_m(
@@ -245,6 +258,20 @@ def assign_contiguous_residual_segments(
                     projected[helper] += connector + path_length_m(oriented)
                     connector_total += connector
                     connectors.append(connector)
+                if range_budgets_m is not None:
+                    feasible = True
+                    for drone_id in alive:
+                        route = shares[drone_id] or own_remaining.get(drone_id, [])
+                        end = route[-1] if route else positions[drone_id]
+                        home = return_homes[drone_id]
+                        return_distance = haversine_m(*end, *home)
+                        if projected[drone_id] + return_distance > (
+                            (1 - reserve_fraction) * range_budgets_m[drone_id] + 1e-9
+                        ):
+                            feasible = False
+                            break
+                    if not feasible:
+                        continue
                 values = list(projected.values())
                 if assignment_objective == "connector":
                     objective = (
@@ -264,7 +291,11 @@ def assign_contiguous_residual_segments(
                     )
                 if best is None or objective < best[0]:
                     best = (objective, shares)
-    return best[1] if best is not None else {drone_id: [] for drone_id in alive}
+    if best is not None:
+        return best[1]
+    if range_budgets_m is not None:
+        return None
+    return {drone_id: [] for drone_id in alive}
 
 
 def order_path_from_start(start: Point, points: Sequence[Point]) -> List[Point]:
@@ -845,6 +876,10 @@ class ReplanConfig:
     contiguous_failed_handoff: bool = False
     adaptive_segment_count: bool = False
     assignment_objective: str = "makespan"
+    # Optional distance constraint for contiguous handoff, including straight RTL.
+    range_budgets_m: Optional[Dict[int, float]] = None
+    return_homes: Optional[Dict[int, Point]] = None
+    range_reserve_fraction: float = 0.2
     grid_spacing_m: float = 0.0  # 0 = auto-estimate from remaining points
     cooldown_s: float = 15.0
 
@@ -1097,7 +1132,13 @@ class ReplanCoordinator:
                     positions,
                     adaptive_segment_count=self.config.adaptive_segment_count,
                     assignment_objective=self.config.assignment_objective,
+                    range_budgets_m=self.config.range_budgets_m,
+                    return_homes=self.config.return_homes,
+                    reserve_fraction=self.config.range_reserve_fraction,
                 )
+                if assigned_share is None:
+                    self.log("[REPLAN] No range-feasible contiguous assignment; no plans written.")
+                    return None
                 share_groups = []
             elif self.config.nearest_failed_only:
                 assigned_share = {i: [] for i in alive}
@@ -1171,10 +1212,13 @@ class ReplanCoordinator:
             if state.lat is None or state.lon is None:
                 continue
             start = (state.lat, state.lon)
-            if (
-                self.config.nearest_failed_only
-                or self.config.contiguous_failed_handoff
-            ):
+            if self.config.contiguous_failed_handoff:
+                # Keep every original vertex, including sub-meter survey edges.
+                route = (
+                    list(own_remaining.get(drone_id, []))
+                    + list(assigned_share.get(drone_id, []))
+                )
+            elif self.config.nearest_failed_only:
                 route = []
                 for point in (
                     list(own_remaining.get(drone_id, []))

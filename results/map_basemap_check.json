@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "state": {
+    "completeTiles": 15,
+    "errors": 0,
+    "loaded": 15,
+    "source": "OpenStreetMap France / HOT",
+    "tileCount": 15
+  }
+}

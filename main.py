@@ -839,7 +839,7 @@ class MainWindow(QMainWindow):
         """Window contain Video"""
 
 
-        video_paths = [0, 'rtsp://192.168.144.22/subStream', 'rtsp://192.168.144.70:8554/main.264', 'rtsp://admin:admin@192.168.144.110:8554/main.264', 'rtsp://192.168.144.225:8554/main.264', 'rtsp://admin:admin@192.168.144.100:8554/main.264']
+        video_paths = [0,0,0, 'rtsp://admin:admin@192.168.144.110:8554/main.264', 'rtsp://192.168.144.225:8554/main.264', 'rtsp://admin:admin@192.168.144.100:8554/main.264']
         self.camera_path_inputs = [getattr(self.ui, f"camera_path_input_{index}", None) for index in range(1, 7)]
         for input_widget, video_path in zip(self.camera_path_inputs, video_paths):
             if input_widget is not None:

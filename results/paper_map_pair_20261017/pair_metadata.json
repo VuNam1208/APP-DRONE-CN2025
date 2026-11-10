@@ -1,0 +1,81 @@
+{
+  "mode": "Offline SIM",
+  "strategy": "Proposed",
+  "failed_uav": 2,
+  "failure_type": "lost_link",
+  "failure_progress_setting": 0.2,
+  "note": "App progress uses coverage distance, not the paper matrix waypoint index.",
+  "altitudes_m": {
+    "1": 12.0,
+    "3": 17.0,
+    "4": 22.0
+  },
+  "delays_s": {
+    "1": 0.0,
+    "3": 2.0,
+    "4": 4.0
+  },
+  "snapshot": {
+    "status": "RUNNING",
+    "simulation_time_s": 246.8855839999742,
+    "failure_triggered": true,
+    "drones": {
+      "1": {
+        "position": [
+          21.065535131503424,
+          105.79480120628882
+        ],
+        "altitude_m": 12.0,
+        "status": "FLYING",
+        "progress": 0.21783083937636133,
+        "distance_flown_m": 493.7711679999484,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "2": {
+        "position": [
+          21.064880881034586,
+          105.79457013656408
+        ],
+        "altitude_m": 12.0,
+        "status": "FAILED",
+        "progress": 0.20097606009386998,
+        "distance_flown_m": 493.7711679999484,
+        "delay_remaining_s": 0.0,
+        "finished_time_s": null,
+        "phase": "FAILED"
+      },
+      "3": {
+        "position": [
+          21.06456883283057,
+          105.7945586624285
+        ],
+        "altitude_m": 17.0,
+        "status": "DELAYED",
+        "progress": 0.20169302654752605,
+        "distance_flown_m": 493.7711679999484,
+        "delay_remaining_s": 2.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      },
+      "4": {
+        "position": [
+          21.063866277823696,
+          105.79471037737993
+        ],
+        "altitude_m": 22.0,
+        "status": "DELAYED",
+        "progress": 0.2244641555236037,
+        "distance_flown_m": 493.7711679999484,
+        "delay_remaining_s": 4.0,
+        "finished_time_s": null,
+        "phase": "TRANSIT"
+      }
+    }
+  },
+  "sources": [
+    "pair_initial.png",
+    "pair_replan.png"
+  ]
+}

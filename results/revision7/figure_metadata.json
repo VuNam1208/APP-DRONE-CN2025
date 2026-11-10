@@ -1,0 +1,14 @@
+{
+  "nominal_conflicting_pairs": 0,
+  "transition_conflicting_pairs": 1,
+  "strict_violation_interval_s": [
+    6,
+    14
+  ],
+  "interval_endpoints_excluded": true,
+  "note": "Figure samples are for drawing only; conflict classification uses the analytic 3D evaluator.",
+  "source_hashes": {
+    "generate_revision7_figure.py": "0e865d5040798baf61733399e82c4be8e5481128869d9645dc565a6cd4715bb7",
+    "evaluate_revision5.py": "60a0a87a3a0940bd41d1928af323d59875cac13a505c4714f1d99860b360bee6"
+  }
+}
